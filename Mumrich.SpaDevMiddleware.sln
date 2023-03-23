@@ -26,6 +26,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mumrich.SpaDevMiddleware", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebSpaVue", "WebSpaVue\WebSpaVue.csproj", "{47893F47-BEB5-4B54-9E55-79F862E9818B}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mumrich.DDD", "Mumrich.DDD\Mumrich.DDD.csproj", "{6D552CDB-78FD-4A32-9B6A-1A096B66D928}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +54,10 @@ Global
 		{47893F47-BEB5-4B54-9E55-79F862E9818B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{47893F47-BEB5-4B54-9E55-79F862E9818B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{47893F47-BEB5-4B54-9E55-79F862E9818B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D552CDB-78FD-4A32-9B6A-1A096B66D928}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D552CDB-78FD-4A32-9B6A-1A096B66D928}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D552CDB-78FD-4A32-9B6A-1A096B66D928}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D552CDB-78FD-4A32-9B6A-1A096B66D928}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
