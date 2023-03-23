@@ -28,6 +28,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebSpaVue", "WebSpaVue\WebS
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mumrich.DDD", "Mumrich.DDD\Mumrich.DDD.csproj", "{6D552CDB-78FD-4A32-9B6A-1A096B66D928}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".vscode", ".vscode", "{4B400A43-FF6C-46AB-9746-CC03D8D3A14D}"
+	ProjectSection(SolutionItems) = preProject
+		.vscode\launch.json = .vscode\launch.json
+		.vscode\tasks.json = .vscode\tasks.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{6A182664-CF6C-4EA7-A951-57FB785E1A94}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{99065A36-1CA2-4E07-A57B-A6180B6B47E2}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\main.yml = .github\workflows\main.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -61,6 +74,11 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4B400A43-FF6C-46AB-9746-CC03D8D3A14D} = {4E1B5716-B70D-4F89-A416-2B20723D5306}
+		{6A182664-CF6C-4EA7-A951-57FB785E1A94} = {4E1B5716-B70D-4F89-A416-2B20723D5306}
+		{99065A36-1CA2-4E07-A57B-A6180B6B47E2} = {6A182664-CF6C-4EA7-A951-57FB785E1A94}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {37B5B4BA-4127-44CB-90EF-11A930FC27F1}
