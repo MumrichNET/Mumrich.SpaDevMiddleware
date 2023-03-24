@@ -1,5 +1,6 @@
 <Project>
   <UsingTask TaskName="Mumrich.SpaDevMiddleware.MsBuild.SpaPublisherTask" AssemblyFile="$(TargetDir)Mumrich.SpaDevMiddleware.MsBuild.dll" />
+  <UsingTask TaskName="Mumrich.SpaDevMiddleware.MsBuild.NodePackageInstallTask" AssemblyFile="$(TargetDir)Mumrich.SpaDevMiddleware.MsBuild.dll" />
 
   <ItemGroup>
     <JsonFiles Include="$(MSBuildThisFileDirectory)/../lib/**/*.json" />
@@ -18,20 +19,9 @@
     <Error Condition="'$(ErrorCode)' != '0'" Text="Node.js is required to build and run this project. To continue, please install Node.js and then restart your command prompt or IDE." />
   </Target>
 
-  <Target Name="DebugEnsureYarn" AfterTargets="DebugEnsureNodeEnv">
-    <Message Importance="high" Text="yarn-version:" />
-    <Exec Command="yarn --version" ContinueOnError="true">
-      <Output TaskParameter="ExitCode" PropertyName="ErrorCode" />
-    </Exec>
-  </Target>
-
-  <Target Name="EnsureNodeModulesInstalled" BeforeTargets="Build" Inputs="package.json" Outputs="yarn.lock">
-    <SpaPublisherTask AspNetCoreEnvironment="$(ASPNETCORE_ENVIRONMENT)">
-      <Output TaskParameter="SpaPaths" ItemName="SpaRoot"/>
-    </SpaPublisherTask>
+  <Target Name="EnsureNodeModulesInstalled" BeforeTargets="Build">
     <Message Importance="high" Text="Restoring dependencies. This may take a moment..." />
-    <Message Importance="high" Text="Install Single Page App: '%(SpaRoot.Identity)' ..." />
-    <Exec WorkingDirectory="%(SpaRoot.Identity)" Command="yarn install" />
+    <NodePackageInstallTask />
   </Target>
 
   <Target Name="PublishSpas" AfterTargets="ComputeFilesToPublish">

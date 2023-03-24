@@ -20,7 +20,6 @@ namespace Mumrich.SpaDevMiddleware.Actors
 {
   public record StartProcessCommand;
 
-  // ReSharper disable once ClassNeverInstantiated.Global
   public class ProcessRunnerActor : ReceiveActor
   {
     private const string DefaultRegex = "running at";
@@ -132,7 +131,7 @@ namespace Mumrich.SpaDevMiddleware.Actors
 
         if (_logger == null)
         {
-         Console.Error.WriteLine(line);
+          Console.Error.WriteLine(line);
         }
         else
         {
@@ -145,7 +144,7 @@ namespace Mumrich.SpaDevMiddleware.Actors
       {
         if (_logger == null)
         {
-         Console.WriteLine(line);
+          Console.WriteLine(line);
         }
         else
         {

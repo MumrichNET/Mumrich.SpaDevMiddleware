@@ -18,4 +18,6 @@
     <ProjectReference Include="..\Mumrich.SpaDevMiddleware\Mumrich.SpaDevMiddleware.csproj" />
   </ItemGroup>
 
+  <Import Project="../Mumrich.SpaDevMiddleware/MSBuild/Mumrich.SpaDevMiddleware.targets" />
+
 </Project>

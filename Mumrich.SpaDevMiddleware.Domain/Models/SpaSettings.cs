@@ -41,7 +41,7 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// Values can be env-vars themselves and must be surrounded with '%'
     /// E. g.: %ASPNETCORE_HTTPS_PORT%, etc.
     /// </summary>
-    public Dictionary<string, string> Environment { get; set; } = new();
+    public Dictionary<string, string> Environment { get; set; } = new Dictionary<string, string>();
 
     /// <summary>
     /// The output-path of the built/published app.

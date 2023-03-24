@@ -1,50 +1,25 @@
-using System.Text.Json;
+using System.Collections.Generic;
+using System.Linq;
 
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
-using MsBuildTask = Microsoft.Build.Utilities.Task;
+using Mumrich.SpaDevMiddleware.Domain.Models;
+using Mumrich.SpaDevMiddleware.MsBuild;
+using Mumrich.SpaDevMiddleware.MsBuild.Extensions;
 
 namespace Mumrich.SpaDevMiddleware.MSBuild
 {
-  public class MiniSettings
+  public class SpaPublisherTask : MsBuildTaskBase
   {
-    // ReSharper disable once CollectionNeverUpdated.Global
-    public Dictionary<string, MiniSpaSettings> SinglePageApps { get; set; } = new();
-  }
-
-  // ReSharper disable once ClassNeverInstantiated.Global
-  public class MiniSpaSettings
-  {
-    public string NodeBuildScript { get; set; }
-
-    // ReSharper disable once UnusedAutoPropertyAccessor.Global
-    public string SpaRootPath { get; set; }
-  }
-
-  // ReSharper disable once UnusedType.Global
-  public class SpaPublisherTask : MsBuildTask
-  {
-    // ReSharper disable once MemberCanBePrivate.Global
-    // ReSharper disable once UnusedAutoPropertyAccessor.Global
-    public string AspNetCoreEnvironment { get; set; }
-
     [Output]
     public TaskItem[] SpaPaths { get; set; }
 
     public override bool Execute()
     {
-      var currentDir = Directory.GetCurrentDirectory();
-      var defaultAppSettingsFile = Directory
-        .GetFiles(currentDir, "appsettings.json")
-        .FirstOrDefault();
-      var envAppSettingsFile = Directory
-        .GetFiles(currentDir, $"appsettings.{AspNetCoreEnvironment}.json")
-        .FirstOrDefault();
-
-      var defaultAppSettings = TryReadMiniSettings(defaultAppSettingsFile);
-      var envAppSettings = TryReadMiniSettings(envAppSettingsFile);
-      var spaSettings = new Dictionary<string, MiniSpaSettings>();
+      var defaultAppSettings = TryReadDefaultAppSettingsFile();
+      var envAppSettings = TryReadEnvAppSettingsFile();
+      var spaSettings = new Dictionary<string, SpaSettings>();
 
       CollectSpaPaths(nameof(envAppSettings), spaSettings, envAppSettings);
       CollectSpaPaths(nameof(defaultAppSettings), spaSettings, defaultAppSettings);
@@ -59,30 +34,14 @@ namespace Mumrich.SpaDevMiddleware.MSBuild
       return true;
     }
 
-    private static string ConvertToMsBuildCompatiblePath(string spaRootPath)
+    private void CollectSpaPaths(string prefix, Dictionary<string, SpaSettings> spaSettings, AppSettings miniSettings)
     {
-      var spaRootPathWithBackslashed = spaRootPath.Replace("/", "\\");
-      return spaRootPathWithBackslashed.EndsWith("\\") ? spaRootPathWithBackslashed : $"{spaRootPathWithBackslashed}\\";
-    }
-
-    private static MiniSettings TryReadMiniSettings(string filePath)
-    {
-      if (filePath is null)
+      foreach (var kvp in miniSettings.SinglePageApps)
       {
-        return new();
-      }
+        var route = kvp.Key;
+        var spaDirectory = kvp.Value.SpaRootPath;
 
-      var fileText = File.ReadAllText(filePath);
-      return JsonSerializer.Deserialize<MiniSettings>(fileText);
-    }
-
-    private void CollectSpaPaths(string prefix, Dictionary<string, MiniSpaSettings> spaSettings, MiniSettings miniSettings)
-    {
-      foreach ((string route, MiniSpaSettings value) in miniSettings.SinglePageApps)
-      {
-        var spaDirectory = value.SpaRootPath;
-
-        if (spaSettings.TryAdd(route, value))
+        if (spaSettings.TryAdd(route, kvp.Value))
         {
           LogImportantMessage($"{prefix} => '{route}': '{spaDirectory}'");
         }
