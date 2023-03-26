@@ -9,9 +9,9 @@ import HelloWorld from "./components/HelloWorld.vue";</script>
       <img alt="Vue logo" src="./assets/logo.png" />
       <HelloWorld msg="Hello Vue 3 + TypeScript + Vite" />
     </div>
-    <div class="flex-1 bg-gray-300">
+<!--    <div class="flex-1 bg-gray-300">
       <iframe class="w-full h-full" src="/admin"></iframe>
-    </div>
+    </div>-->
   </div>
 </template>
 

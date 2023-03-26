@@ -10,6 +10,5 @@ namespace Mumrich.SpaDevMiddleware.Domain
   {
     public Dictionary<string, SpaSettings> SinglePageApps { get; set; } = new Dictionary<string, SpaSettings>();
     public string SpaRootPath { get; set; } = Directory.GetCurrentDirectory();
-    public bool UseParentObserverServiceOnWindows { get; set; } = false;
   }
 }

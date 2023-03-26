@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 using Akka.Actor;
 
@@ -20,18 +21,21 @@ namespace Mumrich.SpaDevMiddleware.Actors
 {
   public record StartProcessCommand;
 
-  public class ProcessRunnerActor : ReceiveActor
+  public class SpaDevServerRunnerActor : ReceiveActor, IDisposable
   {
     private const string DefaultRegex = "running at";
     private static readonly Regex AnsiColorRegex = new("\x001b\\[[0-9;]*m", RegexOptions.None, TimeSpan.FromSeconds(1));
     private static readonly TimeSpan RegexMatchTimeout = TimeSpan.FromMinutes(5);
-    private readonly ILogger<ProcessRunnerActor> _logger;
+    private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly ILogger<SpaDevServerRunnerActor> _logger;
+    private readonly SpaSettings _spaSettings;
+    private bool _isDisposed;
 
-    public ProcessRunnerActor(IServiceProvider serviceProvider, SpaSettings spaSettings)
+    public SpaDevServerRunnerActor(IServiceProvider serviceProvider, SpaSettings spaSettings)
     {
       var serviceProviderScope = serviceProvider.CreateScope();
       var spaDevServerSettings = serviceProviderScope.ServiceProvider.GetService<ISpaDevServerSettings>();
-      _logger = serviceProviderScope.ServiceProvider.GetService<ILogger<ProcessRunnerActor>>();
+      _logger = serviceProviderScope.ServiceProvider.GetService<ILogger<SpaDevServerRunnerActor>>();
 
       var regex = spaSettings.Regex;
 
@@ -54,7 +58,7 @@ namespace Mumrich.SpaDevMiddleware.Actors
 
         try
         {
-          // Although the Vue dev server may eventually tell us the URL it's listening on,
+          // Although the dev server may eventually tell us the URL it's listening on,
           // it doesn't do so until it's finished compiling, and even then only if there were
           // no compiler warnings. So instead of waiting for that, consider it ready as soon
           // as it starts listening for requests.
@@ -73,6 +77,12 @@ namespace Mumrich.SpaDevMiddleware.Actors
       });
 
       Self.Tell(new StartProcessCommand());
+      _spaSettings = spaSettings;
+    }
+
+    ~SpaDevServerRunnerActor()
+    {
+      Dispose(disposing: false);
     }
 
     private Process RunnerProcess { get; set; }
@@ -80,6 +90,53 @@ namespace Mumrich.SpaDevMiddleware.Actors
     private EventedStreamReader StdErr { get; set; }
 
     private EventedStreamReader StdOut { get; set; }
+
+    public void Dispose()
+    {
+      Dispose(disposing: true);
+      GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+      if (_isDisposed)
+      {
+        return;
+      }
+
+      _lock.Wait();
+
+      try
+      {
+        if (_isDisposed)
+        {
+          return;
+        }
+
+        if (disposing) // If this method was called by a finalizer, we shouldn't try to release managed resources - https://docs.microsoft.com/en-us/dotnet/standard/garbage-collection/implementing-dispose#the-disposeboolean-overload
+        {
+          // A finalizer can run even if an object's constructor never completed, to be safe, use null conditional operator.
+          if (RunnerProcess?.HasExited == false)
+          {
+            try
+            {
+              RunnerProcess?.KillProcessTree();
+            }
+            catch
+            {
+              // Throws if process is already dead, note that process could die between HasExited check and Kill
+            }
+          }
+          RunnerProcess?.Dispose();
+        }
+
+        _isDisposed = true;
+      }
+      finally
+      {
+        _lock.Release();
+      }
+    }
 
     protected override void PostStop()
     {
@@ -114,52 +171,20 @@ namespace Mumrich.SpaDevMiddleware.Actors
 
     private void AttachToLogger()
     {
-      void StdErrOnReceivedLine(string line)
+      void OnReceivedLine(string line)
       {
-        if (string.IsNullOrWhiteSpace(line))
-        {
-          return;
-        }
-
-        // NPM tasks commonly emit ANSI colors, but it wouldn't make sense to forward
-        // those to loggers (because a logger isn't necessarily any kind of terminal)
-        // making this console for debug purpose
-        if (line.StartsWith("<s>"))
-        {
-          line = line[3..];
-        }
-
         if (_logger == null)
         {
-          Console.Error.WriteLine(line);
+          Console.WriteLine($"{_spaSettings.DevServerAddress}: {line}");
         }
         else
         {
           var effectiveLine = StripAnsiColors(line).TrimEnd('\n');
-          _logger.LogError("{}", effectiveLine);
+          _logger.LogInformation("{}: {}", _spaSettings.DevServerAddress, effectiveLine);
         }
       }
 
-      void StdOutOnReceivedLine(string line)
-      {
-        if (_logger == null)
-        {
-          Console.WriteLine(line);
-        }
-        else
-        {
-          var effectiveLine = StripAnsiColors(line).TrimEnd('\n');
-          _logger.LogInformation("{}", effectiveLine);
-        }
-      }
-
-      // When the NPM task emits complete lines, pass them through to the real logger
-      StdOut.OnReceivedLine += StdOutOnReceivedLine;
-      StdErr.OnReceivedLine += StdErrOnReceivedLine;
-
-      // But when it emits incomplete lines, assume this is progress information and
-      // hence just pass it through to StdOut regardless of logger config.
-      StdErr.OnReceivedChunk += chunk =>
+      void OnReceivedChunk(ArraySegment<char> chunk)
       {
         if (chunk.Array == null)
         {
@@ -170,9 +195,14 @@ namespace Mumrich.SpaDevMiddleware.Actors
 
         if (!containsNewline)
         {
-          _logger.LogInformation("{}", new string(chunk.Array));
+          _logger.LogInformation("{}: {}", _spaSettings.DevServerAddress, new string(chunk.Array));
         }
-      };
+      }
+
+      StdOut.OnReceivedLine += OnReceivedLine;
+      StdErr.OnReceivedLine += OnReceivedLine;
+      StdOut.OnReceivedChunk += OnReceivedChunk;
+      StdErr.OnReceivedChunk += OnReceivedChunk;
     }
   }
 }

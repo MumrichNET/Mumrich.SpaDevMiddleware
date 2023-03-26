@@ -20,7 +20,6 @@ A .NET Middleware for **ASP.NET Core 7** that automatically integrates (multiple
    {
      public Dictionary<string, SpaSettings> SinglePageApps { get; set; } = new();
      public string SpaRootPath { get; set; } = Directory.GetCurrentDirectory();
-     public bool UseParentObserverServiceOnWindows { get; set; } = true;
    }
    ```
 

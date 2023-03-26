@@ -31,7 +31,7 @@ namespace Mumrich.SpaDevMiddleware.HostedServices
     {
       foreach ((string spaPath, SpaSettings spaSettings) in _spaDevServerSettings.SinglePageApps)
       {
-        _processRunners.Add(spaPath, AkkaSystem.ActorOf(DependencyInjectionResolver.Props<ProcessRunnerActor>(spaSettings)));
+        _processRunners.Add(spaPath, AkkaSystem.ActorOf(DependencyInjectionResolver.Props<SpaDevServerRunnerActor>(spaSettings)));
       }
 
       RegisterApplicationShutdownIfAkkaSystemTerminates(_appLifetime, cancellationToken);

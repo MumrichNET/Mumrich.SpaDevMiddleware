@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -12,6 +12,8 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Debug'">True</GeneratePackageOnBuild>
+    <PackageId Condition="'$(Configuration)' == 'Debug'">DEV.$(AssemblyName)</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -49,6 +51,7 @@
       <Pack>True</Pack>
       <PackagePath>/build/</PackagePath>
     </None>
+    <None Remove="bin\Debug\net7.0\/Mumrich.SpaDevMiddleware.deps.json" />
     <None Include="$(OutputPath)/$(AssemblyName).deps.json">
       <Pack>True</Pack>
       <PackagePath>/lib/$(TargetFramework)</PackagePath>

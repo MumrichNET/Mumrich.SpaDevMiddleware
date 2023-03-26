@@ -15,7 +15,7 @@ namespace Mumrich.SpaDevMiddleware.Actors
       foreach ((string _, SpaSettings value) in spaDevServerSettings.SinglePageApps)
       {
         DirectoryInfo directoryInfo = new(value.SpaRootPath);
-        Context.ActorOfWithNameAndArgs<ProcessRunnerActor>(directoryInfo.Name, value);
+        Context.ActorOfWithNameAndArgs<SpaDevServerRunnerActor>(directoryInfo.Name, value);
       }
     }
   }
