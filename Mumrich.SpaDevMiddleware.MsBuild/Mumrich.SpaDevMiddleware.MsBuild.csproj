@@ -1,18 +1,39 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
+    <IncludeSymbols>True</IncludeSymbols>
     <Nullable>disable</Nullable>
+    <OutputType>Library</OutputType>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageTags>SPA</PackageTags>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.5.0" />
     <PackageReference Include="System.Text.Json" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Mumrich.SpaDevMiddleware.Domain\Mumrich.SpaDevMiddleware.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath>/</PackagePath>
+    </None>
+    <None Update="Directory.Build.props">
+      <Pack>True</Pack>
+      <PackagePath>/build/</PackagePath>
+      <TargetPath>$(MSBuildProjectName).props</TargetPath>
+    </None>
   </ItemGroup>
 
 </Project>

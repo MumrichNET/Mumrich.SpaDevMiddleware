@@ -1,19 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <ImplicitUsings>disable</ImplicitUsings>
+    <IncludeSymbols>True</IncludeSymbols>
     <Nullable>disable</Nullable>
+    <OutputType>Library</OutputType>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/mumrich/dotnet-templates</PackageProjectUrl>
-    <TargetFramework>net7.0</TargetFramework>
-    <RepositoryUrl>https://github.com/mumrich/dotnet-templates</RepositoryUrl>
-    <PackageTags>SPA</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <IncludeSymbols>True</IncludeSymbols>
+    <PackageTags>SPA;ASP.NET Core;Single Page Application</PackageTags>
+    <RepositoryUrl>https://github.com/mumrich/dotnet-templates</RepositoryUrl>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Debug'">True</GeneratePackageOnBuild>
-    <PackageId Condition="'$(Configuration)' == 'Debug'">DEV.$(AssemblyName)</PackageId>
+    <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -47,15 +45,10 @@
       <Pack>True</Pack>
       <PackagePath>/</PackagePath>
     </None>
-    <None Include="MSBuild/**">
+    <None Update="Directory.Build.targets">
       <Pack>True</Pack>
       <PackagePath>/build/</PackagePath>
-    </None>
-    <None Remove="bin\Debug\net7.0\/Mumrich.SpaDevMiddleware.deps.json" />
-    <None Include="$(OutputPath)/$(AssemblyName).deps.json">
-      <Pack>True</Pack>
-      <PackagePath>/lib/$(TargetFramework)</PackagePath>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <TargetPath>$(MSBuildProjectName).targets</TargetPath>
     </None>
   </ItemGroup>
 

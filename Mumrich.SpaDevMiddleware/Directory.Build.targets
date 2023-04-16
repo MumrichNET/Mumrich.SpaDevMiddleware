@@ -1,0 +1,48 @@
+<Project>
+
+  <!--<UsingTask TaskName="Mumrich.SpaDevMiddleware.MsBuild.SpaPublisherTask"
+  AssemblyFile="$(TargetDir)Mumrich.SpaDevMiddleware.MsBuild.dll" />
+  <UsingTask TaskName="Mumrich.SpaDevMiddleware.MsBuild.NodePackageInstallTask"
+  AssemblyFile="$(TargetDir)Mumrich.SpaDevMiddleware.MsBuild.dll" />-->
+
+  <!--<ItemGroup>
+    <JsonFiles Include="$(MSBuildThisFileDirectory)/../lib/**/*.json" />
+  </ItemGroup>
+
+  <Target Name="CopyFiles" AfterTargets="Build">
+    <Message Importance="high" Text="copy json files to target dir..." />
+    <Copy SourceFiles="@(JsonFiles)" DestinationFolder="$(TargetDir)" />
+  </Target>-->
+
+<!--  <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build">-->
+<!--    <Message Importance="high" Text="node-version:" />-->
+<!--    <Exec Command="node &#45;&#45;version" ContinueOnError="true">-->
+<!--      <Output TaskParameter="ExitCode" PropertyName="ErrorCode" />-->
+<!--    </Exec>-->
+<!--    <Error Condition="'$(ErrorCode)' != '0'"-->
+<!--      Text="Node.js is required to build and run this project. To continue, please install Node.js and then restart your command prompt or IDE." />-->
+<!--  </Target>-->
+
+  <Target Name="EnsureNodeModulesInstalled" BeforeTargets="Build">
+    <Message Importance="high" Text="Restoring dependencies. This may take a moment..." />
+<!--    <NodePackageInstallTask />-->
+  </Target>
+
+  <!--<Target
+  Name="PublishSpas" AfterTargets="ComputeFilesToPublish">
+    <SpaPublisherTask AspNetCoreEnvironment="$(ASPNETCORE_ENVIRONMENT)">
+      <Output TaskParameter="SpaPaths" ItemName="SpaRoot"/>
+    </SpaPublisherTask>
+    <Message Importance="high" Text="Build Single Page App: '%(SpaRoot.Identity)' ..." />
+    <Exec EnvironmentVariables="%(SpaRoot.BuildEnv)" WorkingDirectory="%(SpaRoot.Identity)"
+  Command="yarn %(SpaRoot.NodeBuildScript)" />
+    <ItemGroup>
+      <DistFiles Include="%(SpaRoot.Identity)dist\**" />
+      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>%(DistFiles.Identity)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>-->
+
+</Project>

@@ -11,6 +11,7 @@ trim_trailing_whitespace = true
 
 # Xml files
 [*.{xml,csproj,targets,props}]
+end_of_line = crlf
 indent_size = 2
 
 # C# files
