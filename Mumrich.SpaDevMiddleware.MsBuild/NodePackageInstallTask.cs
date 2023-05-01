@@ -17,33 +17,35 @@ namespace Mumrich.SpaDevMiddleware.MsBuild
       var defaultAppSettings = TryReadDefaultAppSettingsFile();
       var spaSettingsList = envAppSettings?.SinglePageApps.Union(defaultAppSettings?.SinglePageApps);
 
-      if (spaSettingsList.Any())
+      if (!spaSettingsList.Any())
       {
-        foreach (var spaSettings in spaSettingsList)
+        return true;
+      }
+
+      foreach (var spaSettings in spaSettingsList)
+      {
+        var fullPath = ConvertToMsBuildCompatiblePath(Path.Combine(CurrentDir, spaSettings.Value.SpaRootPath));
+
+        Log.LogMessage(MessageImportance.High, fullPath);
+
+        var p = Process.Start(new ProcessStartInfo(GetPackageManagerExeName(spaSettings.Value.NodePackageManager))
         {
-          var fullPath = ConvertToMsBuildCompatiblePath(Path.Combine(CurrentDir, spaSettings.Value.SpaRootPath));
+          Arguments = GetPackageManagerInstallCommand(spaSettings.Value.NodePackageManager),
+          UseShellExecute = false,
+          RedirectStandardInput = true,
+          RedirectStandardOutput = true,
+          RedirectStandardError = true,
+          WorkingDirectory = Path.GetFullPath(Path.Combine(CurrentDir, spaSettings.Value.SpaRootPath))
+        });
 
-          Log.LogMessage(MessageImportance.High, fullPath);
+        Log.LogMessagesFromStream(p.StandardOutput, MessageImportance.High);
+        Log.LogMessagesFromStream(p.StandardError, MessageImportance.High);
 
-          var p = Process.Start(new ProcessStartInfo(GetPackageManagerExeName(spaSettings.Value.NodePackageManager))
-          {
-            Arguments = GetPackageManagerInstallCommand(spaSettings.Value.NodePackageManager),
-            UseShellExecute = false,
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            WorkingDirectory = Path.GetFullPath(Path.Combine(CurrentDir, spaSettings.Value.SpaRootPath))
-          });
+        p.WaitForExit();
 
-          Log.LogMessagesFromStream(p.StandardOutput, MessageImportance.High);
-          Log.LogMessagesFromStream(p.StandardError, MessageImportance.High);
-
-          p.WaitForExit();
-
-          if (p.ExitCode != 0)
-          {
-            return false;
-          }
+        if (p.ExitCode != 0)
+        {
+          return false;
         }
       }
 

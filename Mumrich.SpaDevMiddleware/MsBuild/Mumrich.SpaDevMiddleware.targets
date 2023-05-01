@@ -25,7 +25,7 @@
 
   <Target Name="EnsureNodeModulesInstalled" BeforeTargets="Build">
     <Message Importance="high" Text="Restoring dependencies. This may take a moment..." />
-<!--    <NodePackageInstallTask />-->
+    <NodePackageInstallTask />
   </Target>
 
   <!--<Target

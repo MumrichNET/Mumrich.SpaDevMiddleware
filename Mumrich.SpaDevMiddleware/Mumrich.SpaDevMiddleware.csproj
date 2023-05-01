@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Akka.Hosting" Version="1.5.1" />
+    <PackageReference Include="Akka.Hosting" Version="1.5.2" />
     <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -45,10 +45,9 @@
       <Pack>True</Pack>
       <PackagePath>/</PackagePath>
     </None>
-    <None Update="Directory.Build.targets">
+    <None Include="MsBuild/*.targets;MsBuild/*.props">
       <Pack>True</Pack>
       <PackagePath>/build/</PackagePath>
-      <TargetPath>$(MSBuildProjectName).targets</TargetPath>
     </None>
   </ItemGroup>
 

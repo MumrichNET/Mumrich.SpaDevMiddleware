@@ -29,10 +29,9 @@
       <Pack>True</Pack>
       <PackagePath>/</PackagePath>
     </None>
-    <None Update="Directory.Build.props">
+    <None Update="MsBuild/*.targets;MsBuild/*.props">
       <Pack>True</Pack>
       <PackagePath>/build/</PackagePath>
-      <TargetPath>$(MSBuildProjectName).props</TargetPath>
     </None>
   </ItemGroup>
 

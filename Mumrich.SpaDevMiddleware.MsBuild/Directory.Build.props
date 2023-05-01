@@ -1,6 +1,0 @@
-<Project>
-  <UsingTask TaskName="Mumrich.SpaDevMiddleware.MsBuild.SpaPublisherTask"
-    AssemblyFile="$(TargetDir)Mumrich.SpaDevMiddleware.MsBuild.dll" />
-  <UsingTask TaskName="Mumrich.SpaDevMiddleware.MsBuild.NodePackageInstallTask"
-    AssemblyFile="$(TargetDir)Mumrich.SpaDevMiddleware.MsBuild.dll" />
-</Project>
