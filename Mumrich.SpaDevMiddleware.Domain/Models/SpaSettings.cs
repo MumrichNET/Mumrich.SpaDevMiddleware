@@ -76,7 +76,7 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// The RegExp for detecting SPA-Assets requests.
     /// </summary>
     //language=regexp
-    public string SpaAssetsExpression { get; set; } = "^(src|node_modules|favicon.+|@[a-zA-Z]+|.*vite.*|.*\\.json|.*\\.js)$";
+    public string SpaAssetsExpression { get; set; } = "^(src|node_modules|favicon.+|@[a-zA-Z]+|.*vite.*|.*\\.json|.*\\.js|.*\\.css)$";
 
     /// <summary>
     /// The RegExp for detecting SPA-Root requests.
