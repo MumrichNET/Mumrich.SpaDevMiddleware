@@ -11,7 +11,7 @@ public class BuildContext : FrostingContext
   {
     CleanBuildOutput = context.Argument(nameof(CleanBuildOutput), true);
     MsBuildConfiguration = context.Argument(nameof(MsBuildConfiguration), "Release");
-    BuildOutputPath = context.Argument(nameof(BuildOutputPath), "../build-output");
+    BuildOutputPath = context.Argument(nameof(BuildOutputPath), "../.build");
     NugetOrgApiKey = context.Argument<string>(nameof(NugetOrgApiKey), null);
     NugetOrgSource = context.Argument(nameof(NugetOrgSource), "https://api.nuget.org/v3/index.json");
   }

@@ -272,8 +272,6 @@ ServiceFabricBackup/
 *.bim_*.settings
 *.rptproj.rsuser
 *- [Bb]ackup.rdl
-*- [Bb]ackup ([0-9]).rdl
-*- [Bb]ackup ([0-9][0-9]).rdl
 
 # Microsoft Fakes
 FakesAssemblies/
@@ -301,7 +299,7 @@ node_modules/
 *.dsw
 *.dsp
 
-# Visual Studio 6 technical files 
+# Visual Studio 6 technical files
 *.ncb
 *.aps
 
@@ -396,3 +394,4 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+.idea/*

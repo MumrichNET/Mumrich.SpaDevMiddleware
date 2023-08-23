@@ -10,11 +10,15 @@
   <ItemGroup>
     <PackageReference Include="DotNetify.SignalR" Version="5.4.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="NSwag.AspNetCore" Version="13.18.2" />
+    <PackageReference Include="NSwag.AspNetCore" Version="13.20.0" />
+    <!-- <PackageReference Include="Mumrich.SpaDevMiddleware" Version="1.3.3" /> -->
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Mumrich.DDD\Mumrich.DDD.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Mumrich.SpaDevMiddleware\Mumrich.SpaDevMiddleware.csproj" />
   </ItemGroup>
 
