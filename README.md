@@ -11,9 +11,21 @@ A .NET Middleware for **ASP.NET Core 7** that automatically integrates (multiple
 
 ## Usage
 
-1. Install the `Mumrich.SpaDevMiddleware` Nuget-Package into your Web-Project (.NET 6)
+1. Install the `Mumrich.SpaDevMiddleware` Nuget-Package into your Web-Project.
 
-2. Implement the `ISpaDevServerSettings`-interface:
+2. Modify the `csproj`-file by adding the following `ItemGroup` and adjust the values accordingly:
+
+   ```xml
+   <ItemGroup>
+     <SpaRoot Include="MyApp\">
+       <InstallCommand>npm install</InstallCommand>
+       <BuildCommand>npm run build</BuildCommand>
+       <BuildOutputPath>MyApp\dist\**</BuildOutputPath>
+     </SpaRoot>
+   </ItemGroup>
+   ```
+
+3. Implement the `ISpaDevServerSettings`-interface:
 
    ```csharp
    public class AppSettings : ISpaDevServerSettings
@@ -24,7 +36,7 @@ A .NET Middleware for **ASP.NET Core 7** that automatically integrates (multiple
    }
    ```
 
-3. Extend `appsettings.json` with a SPA-Config e.g.:
+4. Extend `appsettings.json` with a SPA-Config e.g.:
 
    ```json
    {
@@ -39,25 +51,13 @@ A .NET Middleware for **ASP.NET Core 7** that automatically integrates (multiple
        "/": {
          "DevServerAddress": "http://localhost:3000/",
          "SpaRootPath": "app1",
-         "NodePackageManager": "Yarn",
-         "NodeStartScript": "dev",
-         "NodeBuildScript": "build",
-         "Regex": "dev server running at:",
-         "Bundler": "ViteJs"
-       },
-       "/admin": {
-         "DevServerAddress": "http://localhost:9000/",
-         "SpaRootPath": "app2",
-         "NodePackageManager": "Yarn",
-         "NodeStartScript": "dev",
-         "Regex": "Opening default browser",
-         "Bundler": "ViteJs"
+         "NodePackageManager": "Npm",
        }
      }
    }
    ```
 
-4. Register **Services** and setup app e.g.:
+5. Register **Services** and setup app e.g.:
 
    ```csharp
    using Mumrich.SpaDevMiddleware.Extensions;
@@ -65,37 +65,30 @@ A .NET Middleware for **ASP.NET Core 7** that automatically integrates (multiple
    var builder = WebApplication.CreateBuilder(args);
    var appSettings = builder.Configuration.Get<AppSettings>();
 
-   builder.Services.AddControllersWithViews();
-   builder.Services.AddCors();
    builder.RegisterSinglePageAppDevMiddleware(appSettings);
 
    var app = builder.Build();
 
-   app.UseStaticFiles();
-   app.UseHttpsRedirection();
-   app.UseRouting();
-   app.UseCors();
-   app.MapControllers();
    app.MapSinglePageApps(appSettings);
 
    app.Run();
    ```
 
-5. When using **hot-reloading**, adapt your **SPA-bundling-setup** accordingly to accept the .NET-Webhost-Proxy on the correct Port. Custom-ENV-Variables can be passed via `appsettings.json` - e.g for [vite.config.ts](https://vitejs.dev/config/):
+6. When using **hot-reloading**, adapt your **SPA-bundling-setup** accordingly to accept the .NET-Webhost-Proxy on the correct Port. Custom-ENV-Variables can be passed via `appsettings.json` e.g for [vite.config.ts](https://vitejs.dev/config/):
 
-  ```ts
-  // https://vitejs.dev/config/
-  export default defineConfig({
-    plugins: [vue()],
-    server: {
-      host: true,
-      port: 3000,
-      strictPort: true,
-    },
-  });
-  ```
+   ```ts
+   // https://vitejs.dev/config/
+   export default defineConfig({
+     plugins: [vue()],
+     server: {
+       host: true,
+       port: 3000,
+       strictPort: true,
+     },
+   });
+   ```
 
-6. Run the app (`dotnet run`), navigate to the .NET-Web-host-Url and enjoy 👌!
+7. Run the app (`dotnet run`), navigate to the .NET-Web-host-Url and enjoy 👌!
 
 ### Troubleshooting
 

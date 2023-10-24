@@ -9,11 +9,22 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.4" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets"
+      Version="1.19.4" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Mumrich.SpaDevMiddleware\Mumrich.SpaDevMiddleware.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <SpaRoot Include="Apps\vue-demo-app\">
+      <InstallCommand>npm install</InstallCommand>
+      <BuildCommand>npm run build</BuildCommand>
+      <BuildOutputPath>Apps\vue-demo-app\dist\**</BuildOutputPath>
+    </SpaRoot>
+  </ItemGroup>
+
+  <Import Project="../Mumrich.SpaDevMiddleware/MSBuild/Mumrich.SpaDevMiddleware.targets" />
 
 </Project>

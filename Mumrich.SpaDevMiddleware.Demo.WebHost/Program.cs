@@ -39,7 +39,8 @@ public static class Program
 
     var app = builder.Build();
 
-    app.MapGet("/hello", () => "Hello World!");
+    // app.MapGet("/hello", () => "Hello World!");
+    app.MapSinglePageApps(appSettings);
 
     app.Run();
   }
