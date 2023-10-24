@@ -1,20 +1,33 @@
 <Project>
 
+  <UsingTask TaskName="Mumrich.SpaDevMiddleware.MsBuild.SpaAppSettingsProviderTask"
+    AssemblyFile="$(TargetDir)Mumrich.SpaDevMiddleware.MsBuild.dll" />
+
   <Target Name="EnsureNodeModulesInstalled" BeforeTargets="Build">
-    <Message Importance="high" Text="Installing dependencies for SpaRoot: '%(SpaRoot.Identity)'..." />
-    <Exec WorkingDirectory="%(SpaRoot.Identity)" Command="%(SpaRoot.InstallCommand)" />
+    <SpaAppSettingsProviderTask SpaApps="@(SpaRoot)">
+      <Output TaskParameter="SpaRoots" ItemName="SpaApp" />
+    </SpaAppSettingsProviderTask>
+    <Message Importance="high"
+      Text="Installing dependencies for SpaApp:
+    '%(SpaApp.Identity)'..." />
+    <!-- <Exec WorkingDirectory="%(SpaApp.Identity)" Command="%(SpaApp.InstallCommand)" /> -->
   </Target>
 
-  <Target Name="PublishSpas" AfterTargets="ComputeFilesToPublish">
-    <Message Importance="high" Text="Build Single Page App: '%(SpaRoot.Identity)' ..." />
-    <Exec EnvironmentVariables="%(SpaRoot.BuildEnv)" WorkingDirectory="%(SpaRoot.Identity)" Command="%(SpaRoot.BuildCommand)" />
+  <!-- <Target Name="PublishSpas" AfterTargets="ComputeFilesToPublish">
+    <SpaAppSettingsProviderTask SpaApps="@(SpaRoot)">
+      <Output TaskParameter="SpaRoots" ItemName="SpaApp" />
+    </SpaAppSettingsProviderTask>
+    <Message Importance="high" Text="Build Single Page App: '%(SpaApp.Identity)' ..." />
+    <Exec EnvironmentVariables="%(SpaApp.BuildEnv)" WorkingDirectory="%(SpaApp.Identity)"
+      Command="%(SpaApp.BuildCommand)" />
     <ItemGroup>
-      <DistFiles Include="%(SpaRoot.BuildOutputPath)" />
-      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+      <DistFiles Include="%(SpaApp.BuildOutputPath)" />
+      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')"
+        Exclude="@(ResolvedFileToPublish)">
         <RelativePath>%(DistFiles.Identity)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </ResolvedFileToPublish>
     </ItemGroup>
-  </Target>
+  </Target> -->
 
 </Project>
