@@ -1,3 +1,6 @@
 {
-  "dotnet.defaultSolution": "Mumrich.SpaDevMiddleware.sln"
+  "dotnet.defaultSolution": "Mumrich.SpaDevMiddleware.sln",
+  "i18n-ally.localesPaths": [
+    "WebSpaVue/ClientApp/admin-app/src/i18n"
+  ]
 }
