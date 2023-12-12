@@ -43,7 +43,6 @@ namespace Mumrich.SpaDevMiddleware.Extensions
     {
       if (webApplication.Environment.IsDevelopment())
       {
-        //webApplication.UseCors();
         webApplication.MapReverseProxy();
       }
       else

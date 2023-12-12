@@ -1,20 +1,11 @@
 <Project>
 
-  <!--<UsingTask TaskName="Mumrich.SpaDevMiddleware.MsBuild.SpaAppSettingsProviderTask"
-    AssemblyFile="$(TargetDir)Mumrich.SpaDevMiddleware.MsBuild.dll" />-->
-
   <Target Name="EnsureNodeModulesInstalled" BeforeTargets="Build">
-    <!--<SpaAppSettingsProviderTask SpaApps="@(SpaRoot)">
-      <Output TaskParameter="SpaRoots" ItemName="SpaApp" />
-    </SpaAppSettingsProviderTask>-->
     <Message Importance="high" Text="Installing dependencies for SpaApp: '%(SpaRoot.Identity)'..." />
     <Exec WorkingDirectory="%(SpaRoot.Identity)" Command="%(SpaRoot.InstallCommand)" />
   </Target>
 
   <Target Name="PublishSpas" AfterTargets="ComputeFilesToPublish">
-    <!--<SpaAppSettingsProviderTask SpaApps="@(SpaRoot)">
-      <Output TaskParameter="SpaRoots" ItemName="SpaApp" />
-    </SpaAppSettingsProviderTask>-->
     <Message Importance="high" Text="Build Single Page App: '%(SpaRoot.Identity)' ..." />
     <Exec EnvironmentVariables="%(SpaRoot.BuildEnv)" WorkingDirectory="%(SpaRoot.Identity)"
       Command="%(SpaRoot.BuildCommand)" />

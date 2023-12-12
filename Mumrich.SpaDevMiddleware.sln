@@ -20,8 +20,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Build", "build\Build.csproj
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mumrich.SpaDevMiddleware.Domain", "Mumrich.SpaDevMiddleware.Domain\Mumrich.SpaDevMiddleware.Domain.csproj", "{6432D327-81CE-4965-A774-A16F73B0D972}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mumrich.SpaDevMiddleware.MsBuild", "Mumrich.SpaDevMiddleware.MsBuild\Mumrich.SpaDevMiddleware.MsBuild.csproj", "{162670F0-5E27-4936-BF13-B7CDD50F210B}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mumrich.SpaDevMiddleware", "Mumrich.SpaDevMiddleware\Mumrich.SpaDevMiddleware.csproj", "{EA6EB9DA-0EBA-4B33-9102-6C3483410BDA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mumrich.DDD", "Mumrich.DDD\Mumrich.DDD.csproj", "{6D552CDB-78FD-4A32-9B6A-1A096B66D928}"
@@ -39,7 +37,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\main.yml = .github\workflows\main.yml
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mumrich.SpaDevMiddleware.Demo.WebHost", "Mumrich.SpaDevMiddleware.Demo.WebHost\Mumrich.SpaDevMiddleware.Demo.WebHost.csproj", "{0AC3822F-EDAB-4A74-8B78-BF9C8CFFCA69}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mumrich.SpaDevMiddleware.Demo.WebHost", "Mumrich.SpaDevMiddleware.Demo.WebHost\Mumrich.SpaDevMiddleware.Demo.WebHost.csproj", "{0AC3822F-EDAB-4A74-8B78-BF9C8CFFCA69}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,10 +53,6 @@ Global
 		{6432D327-81CE-4965-A774-A16F73B0D972}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6432D327-81CE-4965-A774-A16F73B0D972}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6432D327-81CE-4965-A774-A16F73B0D972}.Release|Any CPU.Build.0 = Release|Any CPU
-		{162670F0-5E27-4936-BF13-B7CDD50F210B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{162670F0-5E27-4936-BF13-B7CDD50F210B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{162670F0-5E27-4936-BF13-B7CDD50F210B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{162670F0-5E27-4936-BF13-B7CDD50F210B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EA6EB9DA-0EBA-4B33-9102-6C3483410BDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EA6EB9DA-0EBA-4B33-9102-6C3483410BDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EA6EB9DA-0EBA-4B33-9102-6C3483410BDA}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -20,7 +20,6 @@ public static class Program
 
 [TaskName("build")]
 [IsDependentOn(typeof(PackMumrichSpaDevMiddlewareDomainTask))]
-[IsDependentOn(typeof(PackMumrichSpaDevMiddlewareMsBuildTask))]
 [IsDependentOn(typeof(PackMumrichSpaDevMiddlewareTask))]
 public class BuildTask : FrostingTask<BuildContext>
 {
