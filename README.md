@@ -1,6 +1,6 @@
 # Mumrich.SpaDevMiddleware
 
-A .NET Middleware for **ASP.NET Core 7** that automatically integrates (multiple) Single-Page-Apps in a .NET-Webhost.
+A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) Single-Page-Apps in a .NET-Webhost.
 
 - Automatic **node-package install** (`npm`/`yarn`/`pnpm`)
 - SPAs are automatically built upon (`dotnet publish` triggers the `build`-script in `package.json`)

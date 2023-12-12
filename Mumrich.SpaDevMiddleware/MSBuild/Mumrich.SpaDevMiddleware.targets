@@ -10,10 +10,10 @@
     <Message Importance="high"
       Text="Installing dependencies for SpaApp:
     '%(SpaApp.Identity)'..." />
-    <!-- <Exec WorkingDirectory="%(SpaApp.Identity)" Command="%(SpaApp.InstallCommand)" /> -->
+     <Exec WorkingDirectory="%(SpaApp.Identity)" Command="%(SpaApp.InstallCommand)" />
   </Target>
 
-  <!-- <Target Name="PublishSpas" AfterTargets="ComputeFilesToPublish">
+   <Target Name="PublishSpas" AfterTargets="ComputeFilesToPublish">
     <SpaAppSettingsProviderTask SpaApps="@(SpaRoot)">
       <Output TaskParameter="SpaRoots" ItemName="SpaApp" />
     </SpaAppSettingsProviderTask>
@@ -28,6 +28,6 @@
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </ResolvedFileToPublish>
     </ItemGroup>
-  </Target> -->
+  </Target>
 
 </Project>
