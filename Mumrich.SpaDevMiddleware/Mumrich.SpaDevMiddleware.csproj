@@ -1,12 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/mumrich/dotnet-templates</PackageProjectUrl>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFrameworks>net7.0;net8.0</TargetFrameworks>
     <RepositoryUrl>https://github.com/mumrich/dotnet-templates</RepositoryUrl>
     <PackageTags>SPA</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -15,16 +15,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Akka.Hosting" Version="1.5.12" />
+    <PackageReference Include="Akka.Hosting" Version="1.5.13" />
     <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
     <PackageReference Include="Mumrich.AkkaExt" Version="1.2.1" />
     <PackageReference Include="Mumrich.HelpersAndExtensions" Version="1.0.0" />
-    <PackageReference Include="Yarp.ReverseProxy" Version="2.0.1" />
+    <PackageReference Include="Yarp.ReverseProxy" Version="2.1.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,7 +33,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Mumrich.SpaDevMiddleware.Domain\Mumrich.SpaDevMiddleware.Domain.csproj" />
-    <ProjectReference Include="..\Mumrich.SpaDevMiddleware.MsBuild\Mumrich.SpaDevMiddleware.MsBuild.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,11 +47,6 @@
     <None Include="MSBuild/**">
       <Pack>True</Pack>
       <PackagePath>/build/</PackagePath>
-    </None>
-    <None Include="$(OutputPath)/$(AssemblyName).deps.json">
-      <Pack>True</Pack>
-      <PackagePath>/lib/$(TargetFramework)</PackagePath>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
     </None>
   </ItemGroup>
 

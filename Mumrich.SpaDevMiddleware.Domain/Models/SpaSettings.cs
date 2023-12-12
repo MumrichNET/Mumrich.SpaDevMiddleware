@@ -15,7 +15,7 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// <summary>
     /// Name of the policy or "Default", "Anonymous"
     /// </summary>
-    public string AuthorizationPolicy { get; set; } = "Anonymous";
+    public string AuthorizationPolicy { get; set; }
 
     /// <summary>
     /// The Bundler used by the SPA.
@@ -26,7 +26,7 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// <summary>
     /// Name of the CorsPolicy to apply to this route or "Default", "Disable"
     /// </summary>
-    public string CorsPolicy { get; set; } = "Default";
+    public string CorsPolicy { get; set; }
 
     public SpaProxyConfig CustomYarpConfiguration { get; set; }
 

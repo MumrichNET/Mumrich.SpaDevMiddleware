@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Dynamic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -57,15 +58,8 @@ namespace Mumrich.SpaDevMiddleware.Extensions
 
       var reverseProxyConfig = builder.Configuration.GetSection("ReverseProxy");
 
-      if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && spaDevServerSettings.UseParentObserverServiceOnWindows)
-      {
-        builder.Services.AddHostedService<AkkaHostParentService>();
-      }
-      else
-      {
-        builder.Services.AddHostedService<SpaDevelopmentService>();
-      }
-
+      builder.Services.AddSingleton(spaDevServerSettings);
+      builder.Services.AddHostedService<SpaDevelopmentService>();
       builder.Services.AddReverseProxy().LoadFromConfig(reverseProxyConfig);
     }
 
@@ -144,6 +138,24 @@ namespace Mumrich.SpaDevMiddleware.Extensions
 
     private static JObject GetYarpRoute(string route, string clusterId, string path, SpaSettings spaSettings)
     {
+      dynamic proxyRouteConfig = new ExpandoObject();
+
+      proxyRouteConfig.ClusterId = clusterId;
+      proxyRouteConfig.Match = new
+      {
+        Path = path
+      };
+
+      if (spaSettings.AuthorizationPolicy != null)
+      {
+        proxyRouteConfig.AuthorizationPolicy = spaSettings.AuthorizationPolicy;
+      }
+
+      if (spaSettings.CorsPolicy != null)
+      {
+        proxyRouteConfig.CorsPolicy = spaSettings.CorsPolicy;
+      }
+
       return JObject.FromObject(new
       {
         ReverseProxy = new
@@ -152,16 +164,7 @@ namespace Mumrich.SpaDevMiddleware.Extensions
           {
             {
               route,
-              new
-              {
-                ClusterId = clusterId,
-                spaSettings.AuthorizationPolicy,
-                spaSettings.CorsPolicy,
-                Match = new
-                {
-                  Path = path
-                }
-              }
+              proxyRouteConfig
             }
           }
         }
