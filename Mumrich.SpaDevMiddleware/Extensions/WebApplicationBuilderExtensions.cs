@@ -3,28 +3,34 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
-
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-
 using Mumrich.SpaDevMiddleware.Domain.Contracts;
 using Mumrich.SpaDevMiddleware.Domain.Models;
 using Mumrich.SpaDevMiddleware.Domain.Types;
 using Mumrich.SpaDevMiddleware.Helpers;
 using Mumrich.SpaDevMiddleware.HostedServices;
-
 using Newtonsoft.Json.Linq;
 
 namespace Mumrich.SpaDevMiddleware.Extensions
 {
+  /// <summary>
+  /// Extension methods for <see cref="WebApplicationBuilder" />.
+  /// </summary>
   public static class WebApplicationBuilderExtensions
   {
-    [SuppressMessage("Usage", "ASP0013:Suggest switching from using Configure methods to WebApplicationBuilder.Configuration")]
-    public static void RegisterSinglePageAppDevMiddleware(this WebApplicationBuilder builder, ISpaDevServerSettings spaDevServerSettings)
+    [Obsolete("use 'SetupSpaDevMiddleware' instead. This method will be removed eventually!")]
+    [SuppressMessage(
+      "Usage",
+      "ASP0013:Suggest switching from using Configure methods to WebApplicationBuilder.Configuration"
+    )]
+    public static void RegisterSinglePageAppDevMiddleware(
+      this WebApplicationBuilder builder,
+      ISpaDevServerSettings spaDevServerSettings
+    )
     {
       if (!builder.Environment.IsDevelopment())
       {
@@ -42,7 +48,8 @@ namespace Mumrich.SpaDevMiddleware.Extensions
           {
             BundlerType.ViteJs => GetViteJsYarpConfig(appPath, guid, spaSettings),
             BundlerType.QuasarCli => GetQuasarYarpConfig(appPath, guid, spaSettings),
-            BundlerType.Custom => JObject.FromObject(new { ReverseProxy = spaSettings.CustomYarpConfiguration }),
+            BundlerType.Custom
+              => JObject.FromObject(new { ReverseProxy = spaSettings.CustomYarpConfiguration }),
             _ => throw new NotImplementedException()
           };
 
@@ -63,18 +70,27 @@ namespace Mumrich.SpaDevMiddleware.Extensions
       builder.Services.AddReverseProxy().LoadFromConfig(reverseProxyConfig);
     }
 
+    /// <summary>
+    /// Setup all SPA-Dev-Servers defined in <see cref="ISpaDevServerSettings" />.
+    /// </summary>
+    /// <param name="webSpplicationBuilder"></param>
+    /// <param name="spaDevServerSettings"></param>
+    public static void SetupSpaDevMiddleware(
+      this WebApplicationBuilder webSpplicationBuilder,
+      ISpaDevServerSettings spaDevServerSettings
+    )
+    {
+      webSpplicationBuilder.RegisterSinglePageAppDevMiddleware(spaDevServerSettings);
+    }
+
     private static JObject GetQuasarYarpConfig(string appPath, Guid guid, SpaSettings spaSettings)
     {
       return GetYarpConfig(
         appPath,
         spaSettings,
-        new Dictionary<string, string>
-        {
-          {
-            $"SpaRoot-{guid}", "{**any}"
-          }
-        },
-        guid);
+        new Dictionary<string, string> { { $"SpaRoot-{guid}", "{**any}" } },
+        guid
+      );
     }
 
     private static JObject GetViteJsYarpConfig(string appPath, Guid guid, SpaSettings spaSettings)
@@ -84,29 +100,28 @@ namespace Mumrich.SpaDevMiddleware.Extensions
         spaSettings,
         new Dictionary<string, string>
         {
-          {
-            $"SpaRoot-{guid}", $"{{filename:regex({spaSettings.SpaRootExpression})?}}"
-          },
-          {
-            $"SpaAssets-{guid}", $"{{name:regex({spaSettings.SpaAssetsExpression})}}/{{**any}}"
-          }
+          { $"SpaRoot-{guid}", $"{{filename:regex({spaSettings.SpaRootExpression})?}}" },
+          { $"SpaAssets-{guid}", $"{{name:regex({spaSettings.SpaAssetsExpression})}}/{{**any}}" }
         },
-        guid);
+        guid
+      );
     }
 
     private static JObject GetYarpConfig(
       string appPath,
       SpaSettings spaSettings,
       Dictionary<string, string> routeMatches,
-      Guid guid)
+      Guid guid
+    )
     {
       appPath = AppPathHelper.GetValidIntermediateAppPath(appPath);
       string clusterId = $"spa-cluster-{guid}";
-      JObject rootConfig = JObject.FromObject(new
-      {
-        ReverseProxy = new
+      JObject rootConfig = JObject.FromObject(
+        new
         {
-          Clusters = new Dictionary<string, object>
+          ReverseProxy = new
+          {
+            Clusters = new Dictionary<string, object>
             {
               {
                 clusterId,
@@ -116,17 +131,15 @@ namespace Mumrich.SpaDevMiddleware.Extensions
                   {
                     {
                       $"spa-cluster-destination-{guid}",
-                      new
-                      {
-                        Address = spaSettings.DevServerAddress
-                      }
+                      new { Address = spaSettings.DevServerAddress }
                     }
                   }
                 }
               }
             }
+          }
         }
-      });
+      );
 
       foreach ((string route, string path) in routeMatches)
       {
@@ -136,15 +149,17 @@ namespace Mumrich.SpaDevMiddleware.Extensions
       return rootConfig;
     }
 
-    private static JObject GetYarpRoute(string route, string clusterId, string path, SpaSettings spaSettings)
+    private static JObject GetYarpRoute(
+      string route,
+      string clusterId,
+      string path,
+      SpaSettings spaSettings
+    )
     {
       dynamic proxyRouteConfig = new ExpandoObject();
 
       proxyRouteConfig.ClusterId = clusterId;
-      proxyRouteConfig.Match = new
-      {
-        Path = path
-      };
+      proxyRouteConfig.Match = new { Path = path };
 
       if (spaSettings.AuthorizationPolicy != null)
       {
@@ -156,19 +171,15 @@ namespace Mumrich.SpaDevMiddleware.Extensions
         proxyRouteConfig.CorsPolicy = spaSettings.CorsPolicy;
       }
 
-      return JObject.FromObject(new
-      {
-        ReverseProxy = new
+      return JObject.FromObject(
+        new
         {
-          Routes = new Dictionary<string, object>
+          ReverseProxy = new
           {
-            {
-              route,
-              proxyRouteConfig
-            }
+            Routes = new Dictionary<string, object> { { route, proxyRouteConfig } }
           }
         }
-      });
+      );
     }
   }
 }

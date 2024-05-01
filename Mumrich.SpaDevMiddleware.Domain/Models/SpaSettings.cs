@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-
 using Mumrich.SpaDevMiddleware.Domain.Types;
 
 namespace Mumrich.SpaDevMiddleware.Domain.Models
@@ -76,7 +75,8 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// The RegExp for detecting SPA-Assets requests.
     /// </summary>
     //language=regexp
-    public string SpaAssetsExpression { get; set; } = "^(src|node_modules|favicon.+|@[a-zA-Z]+|.*vite.*|.*\\.json|.*\\.js|.*\\.css)$";
+    public string SpaAssetsExpression { get; set; } =
+      "^(src|node_modules|favicon.+|@[a-zA-Z]+|.*vite.*|.*\\.json|.*\\.js|.*\\.css|__devtools__.*)$";
 
     /// <summary>
     /// The RegExp for detecting SPA-Root requests.

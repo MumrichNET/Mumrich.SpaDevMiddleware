@@ -1,22 +1,19 @@
 using System.IO;
-
 using Akka.Actor;
-
 using Mumrich.AkkaExt.Extensions;
 using Mumrich.SpaDevMiddleware.Domain.Contracts;
 using Mumrich.SpaDevMiddleware.Domain.Models;
 
-namespace Mumrich.SpaDevMiddleware.Actors
+namespace Mumrich.SpaDevMiddleware.Actors;
+
+public class SpaBuilderActor : ReceiveActor
 {
-  public class SpaBuilderActor : ReceiveActor
+  public SpaBuilderActor(ISpaDevServerSettings spaDevServerSettings)
   {
-    public SpaBuilderActor(ISpaDevServerSettings spaDevServerSettings)
+    foreach ((string _, SpaSettings value) in spaDevServerSettings.SinglePageApps)
     {
-      foreach ((string _, SpaSettings value) in spaDevServerSettings.SinglePageApps)
-      {
-        DirectoryInfo directoryInfo = new(value.SpaRootPath);
-        Context.ActorOfWithNameAndArgs<ProcessRunnerActor>(directoryInfo.Name, value);
-      }
+      DirectoryInfo directoryInfo = new(value.SpaRootPath);
+      Context.ActorOfWithNameAndArgs<ProcessRunnerActor>(directoryInfo.Name, value);
     }
   }
 }

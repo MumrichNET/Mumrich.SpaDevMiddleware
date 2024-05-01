@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Akka.DependencyInjection" Version="1.5.14" />
-        <PackageReference Include="Akka.Persistence" Version="1.5.14" />
+        <PackageReference Include="Akka.DependencyInjection" Version="1.5.20" />
+        <PackageReference Include="Akka.Persistence" Version="1.5.20" />
     </ItemGroup>
 
 </Project>
