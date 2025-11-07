@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+
 using Mumrich.SpaDevMiddleware.Domain.Types;
 
 namespace Mumrich.SpaDevMiddleware.Domain.Models

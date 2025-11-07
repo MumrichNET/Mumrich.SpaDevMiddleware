@@ -19,7 +19,11 @@ public abstract class AggregateReaderBase<TAggregate, TModel, TQuery> : ReceiveA
     Context.System.EventStream.Subscribe<AggregateUpdateEvent<TAggregate, TModel>>(Self);
 
     Receive<AggregateUpdateEvent<TAggregate, TModel>>(OnUpdate);
-    Receive<AggregateReaderQuery<TAggregate>>(query => Sender.Tell(new AggregateReaderResponse<TAggregate, TModel>(_aggregateId, OnReadQuery(query, _model))));
+    Receive<AggregateReaderQuery<TAggregate>>(query =>
+      Sender.Tell(
+        new AggregateReaderResponse<TAggregate, TModel>(_aggregateId, OnReadQuery(query, _model))
+      )
+    );
   }
 
   protected virtual TModel OnReadQuery(AggregateReaderQuery<TAggregate> query, TModel currentModel)

@@ -2,13 +2,17 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
+
 using Akka.Actor;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
 using Mumrich.SpaDevMiddleware.Domain.Contracts;
 using Mumrich.SpaDevMiddleware.Domain.Models;
 using Mumrich.SpaDevMiddleware.Extensions;
 using Mumrich.SpaDevMiddleware.Utils;
+
 using Newtonsoft.Json;
 
 namespace Mumrich.SpaDevMiddleware.Actors;
@@ -18,8 +22,11 @@ public record StartProcessCommand;
 public class ProcessRunnerActor : ReceiveActor
 {
   private const string DefaultRegex = "running at";
-  private static readonly Regex AnsiColorRegex =
-    new("\x001b\\[[0-9;]*m", RegexOptions.None, TimeSpan.FromSeconds(1));
+  private static readonly Regex AnsiColorRegex = new(
+    "\x001b\\[[0-9;]*m",
+    RegexOptions.None,
+    TimeSpan.FromSeconds(1)
+  );
   private static readonly TimeSpan RegexMatchTimeout = TimeSpan.FromMinutes(5);
   private readonly ILogger<ProcessRunnerActor> _logger;
 
@@ -33,14 +40,14 @@ public class ProcessRunnerActor : ReceiveActor
     var regex = spaSettings.Regex;
 
     _logger.LogInformation(
-      "SpaSettings: {spaSettings}",
+      "SpaSettings: {SpaSettings}",
       JsonConvert.SerializeObject(spaSettings, Formatting.Indented)
     );
 
     var processStartInfo = spaSettings.GetProcessStartInfo(spaDevServerSettings);
 
     _logger.LogInformation(
-      "{processStartInfo}: {FileName} {Arguments} (cwd: '{WorkingDirectory}')",
+      "{ProcessStartInfo}: {FileName} {Arguments} (cwd: '{WorkingDirectory}')",
       nameof(processStartInfo),
       processStartInfo.FileName,
       processStartInfo.Arguments,
@@ -148,7 +155,7 @@ public class ProcessRunnerActor : ReceiveActor
       else
       {
         var effectiveLine = StripAnsiColors(line).TrimEnd('\n');
-        _logger.LogError("{effectiveLine}", effectiveLine);
+        _logger.LogError("{EffectiveLine}", effectiveLine);
       }
     }
 
@@ -161,7 +168,7 @@ public class ProcessRunnerActor : ReceiveActor
       else
       {
         var effectiveLine = StripAnsiColors(line).TrimEnd('\n');
-        _logger.LogInformation("{effectiveLine}", effectiveLine);
+        _logger.LogInformation("{EffectiveLine}", effectiveLine);
       }
     }
 
@@ -182,7 +189,7 @@ public class ProcessRunnerActor : ReceiveActor
 
       if (!containsNewline)
       {
-        _logger.LogInformation("{chunk}", new string(chunk.Array));
+        _logger.LogInformation("{Chunk}", new string(chunk.Array));
       }
     };
   }

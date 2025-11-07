@@ -64,7 +64,8 @@ public class EventedStreamReader
       }
     };
 
-    onStreamClosedHandler = () => ResolveIfStillPending(() => tcs.SetException(new EndOfStreamException()));
+    onStreamClosedHandler = () =>
+      ResolveIfStillPending(() => tcs.SetException(new EndOfStreamException()));
 
     OnReceivedLine += onReceivedLineHandler;
     OnStreamClosed += onStreamClosedHandler;
@@ -108,7 +109,10 @@ public class EventedStreamReader
       int lineBreakPos;
 
       // get all the newlines
-      while ((lineBreakPos = Array.IndexOf(buf, '\n', startPos, chunkLength - startPos)) >= 0 && startPos < chunkLength)
+      while (
+        (lineBreakPos = Array.IndexOf(buf, '\n', startPos, chunkLength - startPos)) >= 0
+        && startPos < chunkLength
+      )
       {
         var length = lineBreakPos - startPos;
         _linesBuffer.Append(buf, startPos, length);

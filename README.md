@@ -32,7 +32,6 @@ A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) 
    {
      public Dictionary<string, SpaSettings> SinglePageApps { get; set; } = new();
      public string SpaRootPath { get; set; } = Directory.GetCurrentDirectory();
-     public bool UseParentObserverServiceOnWindows { get; set; } = true;
    }
    ```
 
@@ -50,8 +49,8 @@ A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) 
      "SinglePageApps": {
        "/": {
          "DevServerAddress": "http://localhost:3000/",
-         "SpaRootPath": "app1",
-         "NodePackageManager": "Npm",
+         "SpaRootPath": "MyApp",
+         "NodePackageManager": "Npm"
        }
      }
    }
@@ -92,7 +91,7 @@ A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) 
 
 ### Troubleshooting
 
-- See the working Example in the `WebSpaVue`-folder.
+- See the working Example in the `Mumrich.SpaDevMiddleware.Demo.WebHost`-folder.
 
 ### Credits
 

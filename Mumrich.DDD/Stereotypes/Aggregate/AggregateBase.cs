@@ -4,7 +4,8 @@ using Akka.Persistence.Fsm;
 
 namespace Mumrich.DDD.Stereotypes.Aggregate;
 
-public abstract class AggregateBase<TAggregateState, TAggregate, TModel, TCommand> : PersistentFSM<TAggregateState, TModel, AggregateEventBase<TAggregate>>
+public abstract class AggregateBase<TAggregateState, TAggregate, TModel, TCommand>
+  : PersistentFSM<TAggregateState, TModel, AggregateEventBase<TAggregate>>
   where TAggregateState : IAggregateState
   where TAggregate : PersistentFSM<TAggregateState, TModel, AggregateEventBase<TAggregate>>
   where TModel : AggregateModelBase<TAggregate, TModel>
@@ -19,18 +20,26 @@ public abstract class AggregateBase<TAggregateState, TAggregate, TModel, TComman
 
   public override string PersistenceId => $"Aggregate-{_aggregateId}";
 
-  protected override sealed TModel ApplyEvent(AggregateEventBase<TAggregate> domainEvent, TModel currentData)
+  protected sealed override TModel ApplyEvent(
+    AggregateEventBase<TAggregate> domainEvent,
+    TModel currentData
+  )
   {
     currentData = OnApplyEvent(domainEvent, currentData, out bool hasDataChanged);
 
     if (hasDataChanged)
     {
-      Context.System.EventStream.Publish(new AggregateUpdateEvent<TAggregate, TModel>(_aggregateId, currentData));
+      Context.System.EventStream.Publish(
+        new AggregateUpdateEvent<TAggregate, TModel>(_aggregateId, currentData)
+      );
     }
 
     return currentData;
   }
 
-  protected abstract TModel OnApplyEvent(AggregateEventBase<TAggregate> domainEvent, TModel currentData,
-    out bool hasDataChanged);
+  protected abstract TModel OnApplyEvent(
+    AggregateEventBase<TAggregate> domainEvent,
+    TModel currentData,
+    out bool hasDataChanged
+  );
 }

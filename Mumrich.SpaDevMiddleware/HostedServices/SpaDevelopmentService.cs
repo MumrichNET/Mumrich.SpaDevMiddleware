@@ -13,35 +13,38 @@ using Mumrich.SpaDevMiddleware.Actors;
 using Mumrich.SpaDevMiddleware.Domain.Contracts;
 using Mumrich.SpaDevMiddleware.Domain.Models;
 
-namespace Mumrich.SpaDevMiddleware.HostedServices
+namespace Mumrich.SpaDevMiddleware.HostedServices;
+
+public class SpaDevelopmentService : AkkaServiceBase, IHostedService
 {
-  public class SpaDevelopmentService : AkkaServiceBase, IHostedService
+  private readonly IHostApplicationLifetime _appLifetime;
+  private readonly Dictionary<string, IActorRef> _processRunners = [];
+  private readonly ISpaDevServerSettings _spaDevServerSettings;
+
+  public SpaDevelopmentService(IServiceProvider serviceProvider)
+    : base("spa-development-system", serviceProvider)
   {
-    private readonly IHostApplicationLifetime _appLifetime;
-    private readonly Dictionary<string, IActorRef> _processRunners = new();
-    private readonly ISpaDevServerSettings _spaDevServerSettings;
+    _appLifetime = serviceProvider.GetRequiredService<IHostApplicationLifetime>();
+    _spaDevServerSettings = serviceProvider.GetRequiredService<ISpaDevServerSettings>();
+  }
 
-    public SpaDevelopmentService(IServiceProvider serviceProvider) : base("spa-development-system", serviceProvider)
+  public Task StartAsync(CancellationToken cancellationToken)
+  {
+    foreach ((string spaPath, SpaSettings spaSettings) in _spaDevServerSettings.SinglePageApps)
     {
-      _appLifetime = serviceProvider.GetRequiredService<IHostApplicationLifetime>();
-      _spaDevServerSettings = serviceProvider.GetRequiredService<ISpaDevServerSettings>();
+      _processRunners.Add(
+        spaPath,
+        AkkaSystem.ActorOf(DependencyInjectionResolver.Props<ProcessRunnerActor>(spaSettings))
+      );
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-      foreach ((string spaPath, SpaSettings spaSettings) in _spaDevServerSettings.SinglePageApps)
-      {
-        _processRunners.Add(spaPath, AkkaSystem.ActorOf(DependencyInjectionResolver.Props<ProcessRunnerActor>(spaSettings)));
-      }
+    RegisterApplicationShutdownIfAkkaSystemTerminates(_appLifetime, cancellationToken);
 
-      RegisterApplicationShutdownIfAkkaSystemTerminates(_appLifetime, cancellationToken);
+    return Task.CompletedTask;
+  }
 
-      return Task.CompletedTask;
-    }
-
-    public async Task StopAsync(CancellationToken cancellationToken)
-    {
-      await GracefullyShutdownAkkaSystemAsync();
-    }
+  public async Task StopAsync(CancellationToken cancellationToken)
+  {
+    await GracefullyShutdownAkkaSystemAsync();
   }
 }
