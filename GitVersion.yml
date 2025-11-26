@@ -1,5 +1,5 @@
 assembly-versioning-scheme: MajorMinorPatch
-mode: Mainline
+mode: ContinuousDeployment
 branches:
   main:
     regex: "^master$|^main$"
@@ -7,3 +7,4 @@ branches:
 ignore:
   sha: []
 merge-message-formats: {}
+tag-prefix: "[vV]?"

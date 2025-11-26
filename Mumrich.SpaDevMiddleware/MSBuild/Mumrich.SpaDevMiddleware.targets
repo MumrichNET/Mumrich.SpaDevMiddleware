@@ -1,18 +1,24 @@
 <Project>
-
   <Target Name="EnsureNodeModulesInstalled" BeforeTargets="Build">
-    <Message Importance="high" Text="Installing dependencies for SpaApp: '%(SpaRoot.Identity)'..." />
+    <Message
+      Importance="high"
+      Text="Installing dependencies for SpaApp: '%(SpaRoot.Identity)'..."
+    />
     <Exec WorkingDirectory="%(SpaRoot.Identity)" Command="%(SpaRoot.InstallCommand)" />
   </Target>
-
   <Target Name="PublishSpas" AfterTargets="ComputeFilesToPublish">
     <Message Importance="high" Text="Build Single Page App: '%(SpaRoot.Identity)' ..." />
-    <Exec EnvironmentVariables="%(SpaRoot.BuildEnv)" WorkingDirectory="%(SpaRoot.Identity)"
-      Command="%(SpaRoot.BuildCommand)" />
+    <Exec
+      EnvironmentVariables="%(SpaRoot.BuildEnv)"
+      WorkingDirectory="%(SpaRoot.Identity)"
+      Command="%(SpaRoot.BuildCommand)"
+    />
     <ItemGroup>
       <DistFiles Include="%(SpaRoot.BuildOutputPath)" />
-      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')"
-        Exclude="@(ResolvedFileToPublish)">
+      <ResolvedFileToPublish
+        Include="@(DistFiles-&gt;'%(FullPath)')"
+        Exclude="@(ResolvedFileToPublish)"
+      >
         <RelativePath>%(DistFiles.Identity)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </ResolvedFileToPublish>

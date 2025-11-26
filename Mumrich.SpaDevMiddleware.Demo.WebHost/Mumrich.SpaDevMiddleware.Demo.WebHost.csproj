@@ -1,21 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>855981a7-754c-4b63-ab16-5a148b069ba3</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.20.1" />
+    <PackageReference
+      Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets"
+      Version="1.23.0"
+    />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Mumrich.SpaDevMiddleware\Mumrich.SpaDevMiddleware.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <SpaRoot Include="Apps\vue-demo-app\">
       <InstallCommand>npm install</InstallCommand>
@@ -23,7 +22,5 @@
       <BuildOutputPath>Apps\vue-demo-app\dist\**</BuildOutputPath>
     </SpaRoot>
   </ItemGroup>
-
   <Import Project="../Mumrich.SpaDevMiddleware/MSBuild/Mumrich.SpaDevMiddleware.targets" />
-
 </Project>

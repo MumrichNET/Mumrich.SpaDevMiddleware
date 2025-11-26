@@ -7,7 +7,7 @@ namespace Mumrich.SpaDevMiddleware.Demo.WebHost;
 
 internal class AppSettings : ISpaDevServerSettings
 {
-  public Dictionary<string, SpaSettings> SinglePageApps { get; set; } = new();
+  public Dictionary<string, SpaSettings> SinglePageApps { get; set; } = [];
   public string SpaRootPath { get; set; }
   public bool UseParentObserverServiceOnWindows { get; set; }
 }
@@ -27,19 +27,18 @@ public static class Program
           {
             DevServerAddress = "http://localhost:3000/",
             SpaRootPath = "Apps/vue-demo-app",
-            NodePackageManager = NodePackageManager.Npm
+            NodePackageManager = NodePackageManager.Npm,
           }
-        }
+        },
       },
       SpaRootPath = Directory.GetCurrentDirectory(),
-      UseParentObserverServiceOnWindows = false
+      UseParentObserverServiceOnWindows = false,
     };
 
-    builder.RegisterSinglePageAppDevMiddleware(appSettings);
+    builder.SetupSpaDevMiddleware(appSettings);
 
     var app = builder.Build();
 
-    // app.MapGet("/hello", () => "Hello World!");
     app.MapSinglePageApps(appSettings);
 
     app.Run();

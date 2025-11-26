@@ -1,5 +1,15 @@
 # Mumrich.SpaDevMiddleware
 
+- [Mumrich.SpaDevMiddleware](#mumrichspadevmiddleware)
+  - [Usage](#usage)
+    - [Troubleshooting](#troubleshooting)
+    - [Credits](#credits)
+  - [License](#license)
+  - [Changelog](#changelog)
+    - [1.5](#15)
+      - [Features](#features)
+      - [Breaking Changes](#breaking-changes)
+
 A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) Single-Page-Apps in a .NET-Webhost.
 
 - Automatic **node-package install** (`npm`/`yarn`/`pnpm`)
@@ -32,7 +42,6 @@ A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) 
    {
      public Dictionary<string, SpaSettings> SinglePageApps { get; set; } = new();
      public string SpaRootPath { get; set; } = Directory.GetCurrentDirectory();
-     public bool UseParentObserverServiceOnWindows { get; set; } = true;
    }
    ```
 
@@ -50,8 +59,8 @@ A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) 
      "SinglePageApps": {
        "/": {
          "DevServerAddress": "http://localhost:3000/",
-         "SpaRootPath": "app1",
-         "NodePackageManager": "Npm",
+         "SpaRootPath": "MyApp",
+         "NodePackageManager": "Npm"
        }
      }
    }
@@ -65,7 +74,7 @@ A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) 
    var builder = WebApplication.CreateBuilder(args);
    var appSettings = builder.Configuration.Get<AppSettings>();
 
-   builder.RegisterSinglePageAppDevMiddleware(appSettings);
+   builder.SetupSpaDevMiddleware(appSettings);
 
    var app = builder.Build();
 
@@ -92,10 +101,26 @@ A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) 
 
 ### Troubleshooting
 
-- See the working Example in the `WebSpaVue`-folder.
+- See the working Example in the `Mumrich.SpaDevMiddleware.Demo.WebHost`-folder.
 
 ### Credits
 
 - Thx to [aspnetcore-vueclimiddleware](https://github.com/EEParker/aspnetcore-vueclimiddleware) for providing insights how to handle console-output.
 - Thx to [AspNetCore.SpaYarp](https://github.com/berhir/AspNetCore.SpaYarp) for providing idea and insights to use [YARP](https://microsoft.github.io/reverse-proxy/).
 - Thx to [YARP](https://microsoft.github.io/reverse-proxy/) for providing such a wonderfull tool.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
+
+## Changelog
+
+### 1.5
+
+#### Features
+
+- .NET 10 Support
+
+#### Breaking Changes
+
+- Obsolete method `RegisterSinglePageAppDevMiddleware` removed

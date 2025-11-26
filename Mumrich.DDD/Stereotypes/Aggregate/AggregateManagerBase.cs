@@ -7,7 +7,14 @@ using Akka.Routing;
 
 namespace Mumrich.DDD.Stereotypes.Aggregate;
 
-public abstract class AggregateManagerBase<TAggregateState, TAggregate, TAggregateReader, TModel, TCommand, TQuery> : UntypedActor
+public abstract class AggregateManagerBase<
+  TAggregateState,
+  TAggregate,
+  TAggregateReader,
+  TModel,
+  TCommand,
+  TQuery
+> : UntypedActor
   where TAggregateState : IAggregateState
   where TAggregate : PersistentFSM<TAggregateState, TModel, AggregateEventBase<TAggregate>>
   where TAggregateReader : AggregateReaderBase<TAggregate, TModel, TQuery>
@@ -37,7 +44,10 @@ public abstract class AggregateManagerBase<TAggregateState, TAggregate, TAggrega
 
   private static IActorRef CreateAggregate(Guid aggregateId)
   {
-    var aggregateRef = Context.ActorOf(DependencyResolver.For(Context.System).Props<TAggregate>(args: aggregateId), aggregateId.ToString());
+    var aggregateRef = Context.ActorOf(
+      DependencyResolver.For(Context.System).Props<TAggregate>(args: aggregateId),
+      aggregateId.ToString()
+    );
 
     Context.Watch(aggregateRef);
 
@@ -46,7 +56,9 @@ public abstract class AggregateManagerBase<TAggregateState, TAggregate, TAggrega
 
   private static IActorRef CreateAggregateReaderPool(Guid aggregateId)
   {
-    var props = new RoundRobinPool(InitialAggregateReaderPoolSize).Props(DependencyResolver.For(Context.System).Props<TAggregateReader>(args: aggregateId));
+    var props = new RoundRobinPool(InitialAggregateReaderPoolSize).Props(
+      DependencyResolver.For(Context.System).Props<TAggregateReader>(args: aggregateId)
+    );
 
     return Context.ActorOf(props, GetAggregateReaderName(aggregateId));
   }
@@ -55,14 +67,16 @@ public abstract class AggregateManagerBase<TAggregateState, TAggregate, TAggrega
   {
     return FindOrCreateChildActor(
       GetAggregateName(aggregateId),
-      () => CreateAggregate(aggregateId));
+      () => CreateAggregate(aggregateId)
+    );
   }
 
   private static IActorRef FindOrCreateAggregateReaderPool(Guid aggregateId)
   {
     return FindOrCreateChildActor(
       GetAggregateReaderName(aggregateId),
-      () => CreateAggregateReaderPool(aggregateId));
+      () => CreateAggregateReaderPool(aggregateId)
+    );
   }
 
   private static IActorRef FindOrCreateChildActor(string childName, Func<IActorRef> createFunc)
