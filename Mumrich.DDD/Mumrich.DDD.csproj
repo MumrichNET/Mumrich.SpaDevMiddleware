@@ -5,7 +5,7 @@
     <Nullable>disable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Akka.DependencyInjection" Version="1.5.55" />
-    <PackageReference Include="Akka.Persistence" Version="1.5.55" />
+    <PackageReference Include="Akka.DependencyInjection" Version="1.5.56" />
+    <PackageReference Include="Akka.Persistence" Version="1.5.56" />
   </ItemGroup>
 </Project>
