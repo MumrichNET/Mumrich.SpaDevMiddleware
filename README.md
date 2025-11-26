@@ -64,7 +64,7 @@ A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) 
    var builder = WebApplication.CreateBuilder(args);
    var appSettings = builder.Configuration.Get<AppSettings>();
 
-   builder.RegisterSinglePageAppDevMiddleware(appSettings);
+   builder.SetupSpaDevMiddleware(appSettings);
 
    var app = builder.Build();
 
