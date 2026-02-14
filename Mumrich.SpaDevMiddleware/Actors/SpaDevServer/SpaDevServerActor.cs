@@ -335,7 +335,7 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
   {
     if (aSuccess)
     {
-      _logger?.LogInformation("*** SPA Dev-Server apears to be ready!");
+      _logger?.LogInformation("*** SPA Dev-Server appears to be ready!");
 
       return GoTo(SpaDevServerActorState.Started);
     }
