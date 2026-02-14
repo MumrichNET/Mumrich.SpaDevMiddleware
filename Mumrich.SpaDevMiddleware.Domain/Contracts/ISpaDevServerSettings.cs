@@ -4,7 +4,10 @@ using Mumrich.SpaDevMiddleware.Domain.Models;
 
 namespace Mumrich.SpaDevMiddleware.Domain.Contracts
 {
-  public interface ISpaDevServerSettings
+  /// <summary>
+  /// Configuration contract for the spa-middleware.
+  /// </summary>
+  public interface ISpaMiddlewareSettings
   {
     /// <summary>
     /// All configurations of all single-page-apps, identified by their url-path.
@@ -12,8 +15,8 @@ namespace Mumrich.SpaDevMiddleware.Domain.Contracts
     Dictionary<string, SpaSettings> SinglePageApps { get; set; }
 
     /// <summary>
-    /// The root-path where the single-page-apps are contained.
+    /// The base URL path where the root of the web-host resides.
     /// </summary>
-    string SpaRootPath { get; set; }
+    string BasePublicPath { get; set; }
   }
 }

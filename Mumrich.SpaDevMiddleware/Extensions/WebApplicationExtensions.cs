@@ -49,7 +49,7 @@ public static class WebApplicationExtensions
 
   public static void MapSinglePageApps(
     this WebApplication webApplication,
-    ISpaDevServerSettings spaDevServerSettings
+    ISpaMiddlewareSettings spaDevServerSettings
   )
   {
     if (webApplication.Environment.IsDevelopment())

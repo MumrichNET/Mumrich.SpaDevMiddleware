@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.IO;
 using System.Text;
@@ -14,7 +13,6 @@ using Mumrich.SpaDevMiddleware.Domain.Contracts;
 using Mumrich.SpaDevMiddleware.Domain.Models;
 using Mumrich.SpaDevMiddleware.Domain.Types;
 using Mumrich.SpaDevMiddleware.Helpers;
-using Mumrich.SpaDevMiddleware.HostedServices;
 
 using Newtonsoft.Json.Linq;
 
@@ -26,13 +24,13 @@ namespace Mumrich.SpaDevMiddleware.Extensions;
 public static class WebApplicationBuilderExtensions
 {
   /// <summary>
-  /// Setup all SPA-Dev-Servers defined in <see cref="ISpaDevServerSettings" />.
+  /// Setup all SPA-Dev-Servers defined in <see cref="ISpaMiddlewareSettings" />.
   /// </summary>
   /// <param name="webSpplicationBuilder"></param>
   /// <param name="spaDevServerSettings"></param>
   public static void SetupSpaDevMiddleware(
     this WebApplicationBuilder webSpplicationBuilder,
-    ISpaDevServerSettings spaDevServerSettings
+    ISpaMiddlewareSettings spaDevServerSettings
   )
   {
     if (!webSpplicationBuilder.Environment.IsDevelopment())
@@ -62,7 +60,9 @@ public static class WebApplicationBuilderExtensions
 
     Console.WriteLine(newConfig);
 
-    webSpplicationBuilder.Configuration.AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(newConfig)));
+    webSpplicationBuilder.Configuration.AddJsonStream(
+      new MemoryStream(Encoding.UTF8.GetBytes(newConfig))
+    );
 
     var reverseProxyConfig = webSpplicationBuilder.Configuration.GetSection("ReverseProxy");
 
