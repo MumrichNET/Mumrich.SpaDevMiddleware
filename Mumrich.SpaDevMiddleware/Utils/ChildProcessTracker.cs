@@ -7,7 +7,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using System.Threading;
 
-namespace Ingtes.Success.Framework.Host.SpaMiddleware.Utils;
+namespace Mumrich.SpaDevMiddleware.Utils;
 
 /// <summary>
 /// Allows processes to be automatically killed when the parent process exits.
@@ -19,8 +19,8 @@ namespace Ingtes.Success.Framework.Host.SpaMiddleware.Utils;
 public static class ChildProcessTracker
 {
   private static readonly Lock LOCK = new();
-  private static IntPtr mJobHandle;
-  private static bool mIsInitialized;
+  private static IntPtr _jobHandle;
+  private static bool _isInitialized;
 
   static ChildProcessTracker()
   {
@@ -43,7 +43,7 @@ public static class ChildProcessTracker
 
     lock (LOCK)
     {
-      if (!mIsInitialized || mJobHandle == IntPtr.Zero)
+      if (!_isInitialized || _jobHandle == IntPtr.Zero)
       {
         Console.WriteLine("*** ChildProcessTracker: Job object not initialized, falling back to normal start.");
         return Process.Start(aStartInfo);
@@ -129,7 +129,7 @@ public static class ChildProcessTracker
       // Assign to job BEFORE resuming
       lock (LOCK)
       {
-        bool assigned = AssignProcessToJobObject(mJobHandle, processInfo.hProcess);
+        bool assigned = AssignProcessToJobObject(_jobHandle, processInfo.hProcess);
         if (!assigned)
         {
           int error = Marshal.GetLastWin32Error();
@@ -272,14 +272,14 @@ public static class ChildProcessTracker
 
     lock (LOCK)
     {
-      if (!mIsInitialized || mJobHandle == IntPtr.Zero)
+      if (!_isInitialized || _jobHandle == IntPtr.Zero)
       {
         Console.WriteLine("*** ChildProcessTracker: Job object not initialized, cannot track process.");
 
         return;
       }
 
-      bool success = AssignProcessToJobObject(mJobHandle, aProcess.Handle);
+      bool success = AssignProcessToJobObject(_jobHandle, aProcess.Handle);
       if (!success && !aProcess.HasExited)
       {
         int error = Marshal.GetLastWin32Error();
@@ -298,18 +298,18 @@ public static class ChildProcessTracker
   {
     lock (LOCK)
     {
-      if (mIsInitialized)
+      if (_isInitialized)
       {
         return;
       }
 
-      mIsInitialized = true;
+      _isInitialized = true;
 
       // Create a job object. The name must be unique per process.
       string jobName = $"ChildProcessTracker_{Environment.ProcessId}";
-      mJobHandle = CreateJobObject(IntPtr.Zero, jobName);
+      _jobHandle = CreateJobObject(IntPtr.Zero, jobName);
 
-      if (mJobHandle == IntPtr.Zero)
+      if (_jobHandle == IntPtr.Zero)
       {
         int error = Marshal.GetLastWin32Error();
         Console.WriteLine($"*** ChildProcessTracker: Failed to create job object. Win32 Error: {error}");
@@ -334,7 +334,7 @@ public static class ChildProcessTracker
 
         if (
           !SetInformationJobObject(
-            mJobHandle,
+            _jobHandle,
             JobObjectInfoType.ExtendedLimitInformation,
             extendedInfoPtr,
             (uint)length
@@ -343,12 +343,12 @@ public static class ChildProcessTracker
         {
           int error = Marshal.GetLastWin32Error();
           Console.WriteLine($"*** ChildProcessTracker: Failed to set job object information. Win32 Error: {error}");
-          CloseHandle(mJobHandle);
-          mJobHandle = IntPtr.Zero;
+          CloseHandle(_jobHandle);
+          _jobHandle = IntPtr.Zero;
         }
         else
         {
-          Console.WriteLine($"*** ChildProcessTracker: Job object initialized successfully. Handle: {mJobHandle}");
+          Console.WriteLine($"*** ChildProcessTracker: Job object initialized successfully. Handle: {_jobHandle}");
         }
       }
       finally
