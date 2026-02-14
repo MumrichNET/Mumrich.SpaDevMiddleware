@@ -4,6 +4,9 @@ using Mumrich.SpaDevMiddleware.Domain.Types;
 
 namespace Mumrich.SpaDevMiddleware.Domain.Models
 {
+  /// <summary>
+  /// Settings of a single-page-application
+  /// </summary>
   public class SpaSettings
   {
     /// <summary>
@@ -44,6 +47,11 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     public Dictionary<string, string> Environment { get; set; } = new Dictionary<string, string>();
 
     /// <summary>
+    /// Whether the health-check within YARP is be enabled.
+    /// </summary>
+    public bool HealthCheckEnabled { get; set; } = true;
+
+    /// <summary>
     /// The output-path of the built/published app.
     /// Usually, this is the name of a folder within <see cref="SpaRootPath"/>.
     /// E. g.: 'dist'.
@@ -68,6 +76,11 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     public string NodeStartScript { get; set; } = "dev";
 
     /// <summary>
+    /// The name of the environment variable that stores the parent process ID. 'PARENT_PID' by default.
+    /// </summary>
+    public string ParentProcessIdEnvVarName { get; set; } = "PARENT_PID";
+
+    /// <summary>
     /// A regular-expression that matches when the dev-server has successfully started.
     /// </summary>
     public string Regex { get; set; }
@@ -75,14 +88,14 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// <summary>
     /// The RegExp for detecting SPA-Assets requests.
     /// </summary>
-    //language=regexp
+    // language=regexp
     public string SpaAssetsExpression { get; set; } =
-      "^(src|node_modules|favicon.+|@[a-zA-Z]+|.*vite.*|.*\\.json|.*\\.js|.*\\.css|__devtools__.*)$";
+      "^(src|node_modules|favicon.+|@[a-zA-Z]+|.*vite.*|.*\\.json|.*\\.js|.*\\.css|__devtools__.*|__vue-router.*|__open-in-editor.*)$";
 
     /// <summary>
     /// The RegExp for detecting SPA-Root requests.
     /// </summary>
-    //language=regexp
+    // language=regexp
     public string SpaRootExpression { get; set; } = @"^.+\\..+$";
 
     /// <summary>

@@ -7,8 +7,8 @@ using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
+using Mumrich.SpaDevMiddleware;
 using Mumrich.SpaDevMiddleware.Domain.Contracts;
 using Mumrich.SpaDevMiddleware.Domain.Models;
 using Mumrich.SpaDevMiddleware.Domain.Types;
@@ -23,87 +23,84 @@ namespace Mumrich.SpaDevMiddleware.Extensions;
 /// </summary>
 public static class WebApplicationBuilderExtensions
 {
-  /// <summary>
-  /// Setup all SPA-Dev-Servers defined in <see cref="ISpaMiddlewareSettings" />.
-  /// </summary>
-  /// <param name="webSpplicationBuilder"></param>
-  /// <param name="spaDevServerSettings"></param>
-  public static void SetupSpaDevMiddleware(
-    this WebApplicationBuilder webSpplicationBuilder,
-    ISpaMiddlewareSettings spaDevServerSettings
+  public static void SetupSpaMiddleware(
+    this WebApplicationBuilder aBuilder,
+    ISpaMiddlewareSettings aSpaMiddlewareSettings
   )
   {
-    if (!webSpplicationBuilder.Environment.IsDevelopment())
+    if (!aBuilder.Environment.CanSpaMiddlewareBeUsed())
     {
       return;
     }
 
-    var origin = new JObject();
+    JObject origin = [];
 
-    foreach ((string appPath, SpaSettings spaSettings) in spaDevServerSettings.SinglePageApps)
+    foreach ((string appPath, SpaSettings spaSettings) in aSpaMiddlewareSettings.SinglePageApps)
     {
       Guid guid = Guid.NewGuid();
       JObject current = spaSettings.Bundler switch
       {
         BundlerType.ViteJs => GetViteJsYarpConfig(appPath, guid, spaSettings),
         BundlerType.QuasarCli => GetQuasarYarpConfig(appPath, guid, spaSettings),
-        BundlerType.Custom => JObject.FromObject(
-          new { ReverseProxy = spaSettings.CustomYarpConfiguration }
-        ),
+        BundlerType.Custom => JObject.FromObject(new { ReverseProxy = spaSettings.CustomYarpConfiguration }),
         _ => throw new NotImplementedException(),
       };
 
       origin.Merge(current);
     }
 
-    var newConfig = origin.ToString();
+    string newConfig = origin.ToString();
 
     Console.WriteLine(newConfig);
 
-    webSpplicationBuilder.Configuration.AddJsonStream(
-      new MemoryStream(Encoding.UTF8.GetBytes(newConfig))
-    );
+    aBuilder.Configuration.AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(newConfig)));
 
-    var reverseProxyConfig = webSpplicationBuilder.Configuration.GetSection("ReverseProxy");
+    IConfigurationSection reverseProxyConfig = aBuilder.Configuration.GetSection("ReverseProxy");
 
-    webSpplicationBuilder.Services.AddSingleton(spaDevServerSettings);
-    webSpplicationBuilder.Services.AddHostedService<SpaDevelopmentService>();
-    webSpplicationBuilder.Services.AddReverseProxy().LoadFromConfig(reverseProxyConfig);
-  }
-
-  private static JObject GetQuasarYarpConfig(string appPath, Guid guid, SpaSettings spaSettings)
-  {
-    return GetYarpConfig(
-      appPath,
-      spaSettings,
-      new Dictionary<string, string> { { $"SpaRoot-{guid}", "{**any}" } },
-      guid
+    aBuilder.Services.AddHttpClient();
+    aBuilder.Services.AddSingleton(aSpaMiddlewareSettings);
+    aBuilder.Services.AddHostedService<SpaDevelopmentService>();
+    aBuilder.Services.AddReverseProxy().LoadFromConfig(reverseProxyConfig);
+    aBuilder.Services.AddRequestTimeouts(aOptions =>
+      aOptions.AddPolicy("spa-middleware-policy", TimeSpan.FromSeconds(20))
     );
   }
 
-  private static JObject GetViteJsYarpConfig(string appPath, Guid guid, SpaSettings spaSettings)
+  private static JObject GetQuasarYarpConfig(string aAppPath, Guid aAppId, SpaSettings aSpaSettings)
   {
     return GetYarpConfig(
-      appPath,
-      spaSettings,
+      aAppPath,
+      aSpaSettings,
+      new Dictionary<string, string> { { $"SpaRoot-{aAppId}", "{**any}" } },
+      aAppId
+    );
+  }
+
+  private static JObject GetViteJsYarpConfig(string aAppPath, Guid aAppId, SpaSettings aSpaSettings)
+  {
+    return GetYarpConfig(
+      aAppPath,
+      aSpaSettings,
       new Dictionary<string, string>
       {
-        { $"SpaRoot-{guid}", $"{{filename:regex({spaSettings.SpaRootExpression})?}}" },
-        { $"SpaAssets-{guid}", $"{{name:regex({spaSettings.SpaAssetsExpression})}}/{{**any}}" },
+        { $"SpaRoot-{aAppId}", $"{{filename:regex({aSpaSettings.SpaRootExpression})?}}" },
+        { $"SpaAssets-{aAppId}", $"{{name:regex({aSpaSettings.SpaAssetsExpression})}}/{{**any}}" },
       },
-      guid
+      aAppId
     );
   }
 
   private static JObject GetYarpConfig(
-    string appPath,
-    SpaSettings spaSettings,
-    Dictionary<string, string> routeMatches,
-    Guid guid
+    string aAppBasePath,
+    SpaSettings aSpaSettings,
+    Dictionary<string, string> aRouteMatches,
+    Guid aAppId
   )
   {
-    appPath = AppPathHelper.GetValidIntermediateAppPath(appPath);
-    string clusterId = $"spa-cluster-{guid}";
+    aAppBasePath = AppPathHelper.GetValidIntermediateAppPath(aAppBasePath);
+
+    string clusterId = $"spa-cluster-{aAppId}";
+
     JObject rootConfig = JObject.FromObject(
       new
       {
@@ -117,10 +114,7 @@ public static class WebApplicationBuilderExtensions
               {
                 Destinations = new Dictionary<string, object>
                 {
-                  {
-                    $"spa-cluster-destination-{guid}",
-                    new { Address = spaSettings.DevServerAddress }
-                  },
+                  { $"spa-cluster-destination-{aAppId}", new { Address = aSpaSettings.DevServerAddress } },
                 },
               }
             },
@@ -129,44 +123,56 @@ public static class WebApplicationBuilderExtensions
       }
     );
 
-    foreach ((string route, string path) in routeMatches)
+    foreach ((string route, string path) in aRouteMatches)
     {
-      rootConfig.Merge(GetYarpRoute(route, clusterId, appPath + path, spaSettings));
+      string fullAppPath = $"{aAppBasePath}/{path}".Replace("//", "/");
+      JObject yarpRouteConfig = GetYarpRoute(route, clusterId, fullAppPath, aSpaSettings);
+
+      rootConfig.Merge(yarpRouteConfig);
     }
 
     return rootConfig;
   }
 
-  private static JObject GetYarpRoute(
-    string route,
-    string clusterId,
-    string path,
-    SpaSettings spaSettings
-  )
+  private static JObject GetYarpRoute(string aRoute, string aClusterId, string aPath, SpaSettings aSpaSettings)
   {
-    dynamic proxyRouteConfig = new ExpandoObject();
+    ExpandoObject proxyRouteConfig = new();
 
-    proxyRouteConfig.ClusterId = clusterId;
-    proxyRouteConfig.Match = new { Path = path };
+    proxyRouteConfig.TryAdd("ClusterId", aClusterId);
+    proxyRouteConfig.TryAdd("Match", new { Path = aPath });
 
-    if (spaSettings.AuthorizationPolicy != null)
+    if (aSpaSettings.AuthorizationPolicy != null)
     {
-      proxyRouteConfig.AuthorizationPolicy = spaSettings.AuthorizationPolicy;
+      proxyRouteConfig.TryAdd("AuthorizationPolicy", aSpaSettings.AuthorizationPolicy);
     }
 
-    if (spaSettings.CorsPolicy != null)
+    if (aSpaSettings.CorsPolicy != null)
     {
-      proxyRouteConfig.CorsPolicy = spaSettings.CorsPolicy;
+      proxyRouteConfig.TryAdd("CorsPolicy", aSpaSettings.CorsPolicy);
     }
 
-    return JObject.FromObject(
-      new
+    proxyRouteConfig.TryAdd(
+      "HealthCheck",
+      new HealthCheck
       {
-        ReverseProxy = new
+        Active = new ActiveHealthCheck
         {
-          Routes = new Dictionary<string, object> { { route, proxyRouteConfig } },
+          Enabled = aSpaSettings.HealthCheckEnabled.ToString().ToLowerInvariant(),
+          Interval = "00:00:10",
+          Timeout = "00:00:15",
+          Policy = "ConsecutiveFailures",
+          Path = aPath,
         },
       }
+    );
+
+    proxyRouteConfig.TryAdd(
+      "Metadata",
+      new Dictionary<string, string> { { "ConsecutiveFailuresHealthPolicy.Threshold", "3" } }
+    );
+
+    return JObject.FromObject(
+      new { ReverseProxy = new { Routes = new Dictionary<string, ExpandoObject> { { aRoute, proxyRouteConfig } } } }
     );
   }
 }

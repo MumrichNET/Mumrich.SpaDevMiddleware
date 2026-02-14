@@ -1,9 +1,14 @@
+using System;
 using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 using Mumrich.SpaDevMiddleware.Domain.Contracts;
 using Mumrich.SpaDevMiddleware.Domain.Models;
@@ -11,57 +16,143 @@ using Mumrich.SpaDevMiddleware.Helpers;
 
 namespace Mumrich.SpaDevMiddleware.Extensions;
 
+/// <summary>
+/// Extension methods for <see cref="WebApplication" />.
+/// </summary>
 public static class WebApplicationExtensions
 {
   public static void MapSinglePageApp(
-    this WebApplication webApplication,
-    string appPath,
-    SpaSettings spaSettings
+    this WebApplication aWebApplication,
+    string aAppPath,
+    SpaSettings aSpaSettings
   )
   {
-    var clientAppRoot = Path.GetFullPath(
+    ILogger<WebApplication> logger = aWebApplication.Services.GetRequiredService<ILogger<WebApplication>>();
+    string clientAppRoot = Path.GetFullPath(
       Path.Combine(
-        webApplication.Environment.ContentRootPath,
-        spaSettings.SpaRootPath,
-        spaSettings.NodeBuildOutputPath
+        aWebApplication.Environment.ContentRootPath,
+        aSpaSettings.SpaRootPath ?? ".",
+        aSpaSettings.NodeBuildOutputPath
       )
     );
 
     Directory.CreateDirectory(clientAppRoot);
 
-    webApplication.UseStaticFiles(
+    aWebApplication.UseStaticFiles(
       new StaticFileOptions
       {
         FileProvider = new PhysicalFileProvider(clientAppRoot),
-        RequestPath = appPath == "/" ? string.Empty : appPath,
+        RequestPath = aAppPath == "/" ? string.Empty : aAppPath,
       }
     );
 
-    var clientAppIndex = Path.GetFullPath(
-      Path.Combine(clientAppRoot, spaSettings.AppIndexFileName)
+    string clientAppIndex = Path.GetFullPath(Path.Combine(clientAppRoot, aSpaSettings.AppIndexFileName));
+
+    string appPath = AppPathHelper.GetValidIntermediateAppPath(aAppPath);
+    logger.LogInformation(
+      "*** Mapping Single Page App at '{AppPath}' with index file '{ClientAppIndex}'",
+      appPath,
+      clientAppIndex
     );
 
-    webApplication.MapGet(
-      AppPathHelper.GetValidIntermediateAppPath(appPath),
-      async context => await context.Response.SendFileAsync(clientAppIndex)
-    );
+    aWebApplication.MapGet(appPath, async aContext => await aContext.Response.SendFileAsync(clientAppIndex));
   }
 
   public static void MapSinglePageApps(
-    this WebApplication webApplication,
-    ISpaMiddlewareSettings spaDevServerSettings
+    this WebApplication aWebApplication,
+    ISpaMiddlewareSettings aSpaMiddlewareSettings
   )
   {
-    if (webApplication.Environment.IsDevelopment())
+    if (aWebApplication.Environment.CanSpaMiddlewareBeUsed())
     {
-      webApplication.MapReverseProxy();
-    }
-    else
-    {
-      foreach ((string appPath, SpaSettings spaSettings) in spaDevServerSettings.SinglePageApps)
+      foreach ((string path, SpaSettings spaSettings) in aSpaMiddlewareSettings.SinglePageApps)
       {
-        webApplication.MapSinglePageApp(appPath, spaSettings);
+        UseWaitForDevServerMiddleware(aWebApplication, path, spaSettings);
+      }
+
+      aWebApplication.MapReverseProxy();
+    }
+    else if (aWebApplication.Environment.CanSinglePageAppBeMapped())
+    {
+      foreach ((string appPath, SpaSettings spaSettings) in aSpaMiddlewareSettings.SinglePageApps)
+      {
+        aWebApplication.MapSinglePageApp(appPath, spaSettings);
       }
     }
+  }
+
+  private static void UseWaitForDevServerMiddleware(
+    WebApplication aWebApplication,
+    string aAppPath,
+    SpaSettings aSpaSettings
+  )
+  {
+    ILogger<WebApplication> logger = aWebApplication.Services.GetRequiredService<ILogger<WebApplication>>();
+    IHttpClientFactory httpClientFactory = aWebApplication.Services.GetRequiredService<IHttpClientFactory>();
+
+    aWebApplication.Use(
+      async (aHttpContext, aNext) =>
+      {
+        string? requestPath = aHttpContext.Request.Path.Value;
+
+        logger.LogInformation("*** {AppPath} Request Path: '{RequestPath}'", aAppPath, requestPath);
+
+        HttpClient httpClient = httpClientFactory.CreateClient();
+        TimeSpan maxWaitTime = TimeSpan.FromSeconds(300);
+        TimeSpan waitInterval = TimeSpan.FromSeconds(2);
+        DateTime startTime = DateTime.UtcNow;
+
+        httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+        while (DateTime.UtcNow - startTime < maxWaitTime)
+        {
+          try
+          {
+            HttpResponseMessage response = await httpClient.GetAsync(aSpaSettings.DevServerAddress);
+
+            if (response.IsSuccessStatusCode)
+            {
+              logger.LogInformation(
+                "Dev-server at {DevServerAddress} is up ({HttpCode}), continue...",
+                aSpaSettings.DevServerAddress,
+                response.StatusCode
+              );
+              break;
+            }
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+              logger.LogWarning(
+                "Dev-server at {DevServerAddress} responded with {HttpCode} ({HttpCodeStatus}). Treating dev-server as available and continuing.",
+                aSpaSettings.DevServerAddress,
+                (int)response.StatusCode,
+                response.StatusCode.ToString()
+              );
+              break;
+            }
+
+            logger.LogInformation(
+              "*** Checking dev-server at {DevServerAddress}, got HttpCode {HttpCode} ({HttpCodeStatus})",
+              aSpaSettings.DevServerAddress,
+              (int)response.StatusCode,
+              response.StatusCode.ToString()
+            );
+          }
+          catch (Exception aException)
+          {
+            logger.LogWarning(
+              aException,
+              "{DevServerAddress} is still down, wait and retry: {Exception}",
+              aSpaSettings.DevServerAddress,
+              aException.ToString()
+            );
+          }
+
+          await Task.Delay(waitInterval);
+        }
+
+        await aNext();
+      }
+    );
   }
 }

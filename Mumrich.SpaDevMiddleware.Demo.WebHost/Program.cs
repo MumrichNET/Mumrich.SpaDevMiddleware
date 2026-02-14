@@ -14,6 +14,7 @@ namespace Mumrich.SpaDevMiddleware.Demo.WebHost;
 internal class AppSettings : ISpaMiddlewareSettings
 {
   public Dictionary<string, SpaSettings> SinglePageApps { get; set; } = [];
+
   public string BasePublicPath { get; set; } = Environment.CurrentDirectory;
 }
 
@@ -39,7 +40,7 @@ public static class Program
       BasePublicPath = Directory.GetCurrentDirectory(),
     };
 
-    builder.SetupSpaDevMiddleware(appSettings);
+    builder.SetupSpaMiddleware(appSettings);
 
     var app = builder.Build();
 
