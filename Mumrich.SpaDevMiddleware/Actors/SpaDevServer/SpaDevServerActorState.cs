@@ -1,4 +1,4 @@
-namespace Ingtes.Success.Framework.Host.SpaMiddleware.Actors.SpaDevServer;
+namespace Mumrich.SpaDevMiddleware.Actors.SpaDevServer;
 
 public enum SpaDevServerActorState
 {

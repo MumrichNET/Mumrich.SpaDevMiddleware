@@ -5,14 +5,12 @@ using System.Text.RegularExpressions;
 
 using Akka.Actor;
 
-using Ingtes.Success.Framework.Host.SpaMiddleware.Actors.SpaDevServer;
-using Ingtes.Success.Framework.Host.SpaMiddleware.Actors.SpaDevServer.Commands;
-using Ingtes.Success.Framework.Host.SpaMiddleware.Actors.SpaDevServer.Responses;
-
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+using Mumrich.SpaDevMiddleware.Actors.SpaDevServer.Commands;
+using Mumrich.SpaDevMiddleware.Actors.SpaDevServer.Responses;
 using Mumrich.SpaDevMiddleware.Domain.Models;
 using Mumrich.SpaDevMiddleware.Extensions;
 using Mumrich.SpaDevMiddleware.SignalR;
