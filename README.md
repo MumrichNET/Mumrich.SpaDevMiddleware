@@ -6,8 +6,10 @@
     - [Credits](#credits)
   - [License](#license)
   - [Changelog](#changelog)
-    - [1.5](#15)
+    - [1.6](#16)
       - [Features](#features)
+    - [1.5](#15)
+      - [Features](#features-1)
       - [Breaking Changes](#breaking-changes)
 
 A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) Single-Page-Apps in a .NET-Webhost.
@@ -114,6 +116,13 @@ A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) 
 This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
 
 ## Changelog
+
+### 1.6
+
+#### Features
+
+- Improved startup: the middleware is waiting for the dev server to be ready (`UseWaitForDevServerMiddleware`)
+- (Windows only) Improved Debug-Handling: the middleware is now registering a `ChildProcessTracker` that automatically kills all child-processes of the dev-server-process when the .NET-Webhost is stopped. This prevents orphaned node-processes when stopping the .NET-Webhost via Debug-Stop (`Shift+F5`) in Visual Studio.
 
 ### 1.5
 
