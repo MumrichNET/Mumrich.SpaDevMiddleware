@@ -1,3 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+using Microsoft.AspNetCore.Builder;
+
 using Mumrich.SpaDevMiddleware.Domain.Contracts;
 using Mumrich.SpaDevMiddleware.Domain.Models;
 using Mumrich.SpaDevMiddleware.Domain.Types;
@@ -5,11 +11,10 @@ using Mumrich.SpaDevMiddleware.Extensions;
 
 namespace Mumrich.SpaDevMiddleware.Demo.WebHost;
 
-internal class AppSettings : ISpaDevServerSettings
+internal class AppSettings : ISpaMiddlewareSettings
 {
   public Dictionary<string, SpaSettings> SinglePageApps { get; set; } = [];
-  public string SpaRootPath { get; set; }
-  public bool UseParentObserverServiceOnWindows { get; set; }
+  public string BasePublicPath { get; set; } = Environment.CurrentDirectory;
 }
 
 public static class Program
@@ -27,12 +32,11 @@ public static class Program
           {
             DevServerAddress = "http://localhost:3000/",
             SpaRootPath = "Apps/vue-demo-app",
-            NodePackageManager = NodePackageManager.Npm,
+            NodePackageManager = NodePackageManager.Pnpm,
           }
         },
       },
-      SpaRootPath = Directory.GetCurrentDirectory(),
-      UseParentObserverServiceOnWindows = false,
+      BasePublicPath = Directory.GetCurrentDirectory(),
     };
 
     builder.SetupSpaDevMiddleware(appSettings);
