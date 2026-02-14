@@ -1,6 +1,7 @@
 # Mumrich.SpaDevMiddleware
 
 - [Mumrich.SpaDevMiddleware](#mumrichspadevmiddleware)
+  - [Prerequisites](#prerequisites)
   - [Usage](#usage)
     - [Troubleshooting](#troubleshooting)
     - [Credits](#credits)
@@ -20,6 +21,12 @@ A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) 
 - SPA **Hot-Reloading** supported
 - **Custom-ENV-Variables** can be passed to the Node-Instance via `appsettings.json`
 - Usage of **MSBUILD-Variables** supported
+
+## Prerequisites
+
+- .NET 10+
+- Node.js (for development and build of the SPA)
+- Either `npm`, `yarn` or `pnpm` as Node-Package-Manager (depending on your choice)
 
 ## Usage
 
