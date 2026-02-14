@@ -3,7 +3,6 @@
     "Vue.volar",
     "dbaeumer.vscode-eslint",
     "EditorConfig.EditorConfig",
-    "oxc.oxc-vscode",
-    "esbenp.prettier-vscode"
+    "oxc.oxc-vscode"
   ]
 }

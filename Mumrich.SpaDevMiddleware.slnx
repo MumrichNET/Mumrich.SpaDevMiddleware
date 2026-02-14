@@ -1,0 +1,31 @@
+<Solution>
+  <Folder Name="/.global/">
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="build.ps1" />
+    <File Path="build.sh" />
+    <File Path="GitVersion.yml" />
+    <File Path="global.json" />
+    <File Path="LICENSE.txt" />
+    <File Path="nuget.config" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/.global/.github/" />
+  <Folder Name="/.global/.github/workflows/">
+    <File Path=".github/workflows/main.yml" />
+  </Folder>
+  <Folder Name="/.global/.vscode/">
+    <File Path=".vscode/launch.json" />
+    <File Path=".vscode/tasks.json" />
+  </Folder>
+  <Folder Name="/Automation/">
+    <Project Path="build/Build.csproj" />
+  </Folder>
+  <Folder Name="/Source/">
+    <Project Path="Mumrich.DDD/Mumrich.DDD.csproj" />
+    <Project Path="Mumrich.SpaDevMiddleware.Domain/Mumrich.SpaDevMiddleware.Domain.csproj" />
+    <Project Path="Mumrich.SpaDevMiddleware/Mumrich.SpaDevMiddleware.csproj" />
+  </Folder>
+  <Project Path="Mumrich.SpaDevMiddleware.Demo.WebHost/Mumrich.SpaDevMiddleware.Demo.WebHost.csproj" />
+</Solution>

@@ -6,9 +6,9 @@ using Mumrich.SpaDevMiddleware.Domain.Models;
 
 namespace Mumrich.SpaDevMiddleware.Domain
 {
-  public class DefaultAppSettings : ISpaDevServerSettings
+  public class DefaultAppSettings : ISpaMiddlewareSettings
   {
     public Dictionary<string, SpaSettings> SinglePageApps { get; set; } = new Dictionary<string, SpaSettings>();
-    public string SpaRootPath { get; set; } = Directory.GetCurrentDirectory();
+    public string BasePublicPath { get; set; } = Directory.GetCurrentDirectory();
   }
 }

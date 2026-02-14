@@ -1,0 +1,364 @@
+using System;
+using System.Diagnostics;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+
+using Akka.Actor;
+
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+using Mumrich.SpaDevMiddleware.Actors.SpaDevServer.Commands;
+using Mumrich.SpaDevMiddleware.Actors.SpaDevServer.Responses;
+using Mumrich.SpaDevMiddleware.Domain.Models;
+using Mumrich.SpaDevMiddleware.Extensions;
+using Mumrich.SpaDevMiddleware.SignalR;
+using Mumrich.SpaDevMiddleware.Utils;
+
+namespace Mumrich.SpaDevMiddleware.Actors.SpaDevServer;
+
+/// <summary>
+/// The parent of a Node.js dev-server.
+/// </summary>
+public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorData>, IWithTimers
+{
+  private const string DEFAULT_REGEX = "running at";
+  private const int MAX_NBR_RETRYS = 10;
+  private static readonly Regex ANSI_COLOR_REGEX = new(
+    "\x001b\\[[0-9;]*m",
+    RegexOptions.None,
+    TimeSpan.FromSeconds(1)
+  );
+
+  private static readonly TimeSpan REGEX_MATCH_TIMEOUT = TimeSpan.FromMinutes(5);
+
+  private static readonly JsonSerializerOptions DEFAULT_JSON_SERIALIZER_OPTIONS =
+    new JsonSerializerOptions { WriteIndented = true };
+  private readonly ILogger<SpaDevServerActor>? _logger;
+  private readonly IHubContext<SpaDevServerLogHub, ISpaDevServerLogHub>? _spaDevServerLogHub;
+  private int _nbrRetrys = 0;
+
+  public SpaDevServerActor(
+    IServiceProvider aServiceProvider,
+    string aBasePublicPath,
+    SpaSettings aSpaSettings
+  )
+  {
+    IServiceScope serviceProviderScope = aServiceProvider.CreateScope();
+    _logger = serviceProviderScope.ServiceProvider.GetService<ILogger<SpaDevServerActor>>();
+    _spaDevServerLogHub = serviceProviderScope.ServiceProvider.GetService<
+      IHubContext<SpaDevServerLogHub, ISpaDevServerLogHub>
+    >();
+
+    StartWith(
+      SpaDevServerActorState.Stopped,
+      new SpaDevServerActorData { SpaSettings = aSpaSettings, BasePublicPath = aBasePublicPath }
+    );
+
+    When(
+      SpaDevServerActorState.Stopped,
+      aContext =>
+        aContext.FsmEvent switch
+        {
+          StartProcessCommand => StartProcessCommandHandle(aContext.StateData),
+          StdOutMatchResponse aStdOutMatchResponse => StdOutMatchResponseHandle(
+            aStdOutMatchResponse.Success,
+            aStdOutMatchResponse.Exception
+          ),
+          _ => null,
+        }
+    );
+
+    When(
+      SpaDevServerActorState.Started,
+      aContext =>
+        aContext.FsmEvent switch
+        {
+          _ => null,
+        }
+    );
+
+    When(
+      SpaDevServerActorState.Error,
+      aContext =>
+        aContext.FsmEvent switch
+        {
+          _ => null,
+        }
+    );
+
+    Self.Tell(new StartProcessCommand());
+  }
+
+  public ITimerScheduler? Timers { get; set; }
+
+  private Process? RunnerProcess { get; set; }
+
+  private EventedStreamReader? StdErr { get; set; }
+
+  private EventedStreamReader? StdOut { get; set; }
+
+  protected override void PostStop()
+  {
+    RunnerProcess?.Kill();
+  }
+
+  private static Process? LaunchNodeProcess(ProcessStartInfo aStartInfo)
+  {
+    try
+    {
+      Process? process = Process.Start(aStartInfo);
+
+      if (process != null)
+      {
+        process.EnableRaisingEvents = true;
+      }
+
+      return process;
+    }
+    catch (Exception ex)
+    {
+      string message =
+        $"Failed to start '{aStartInfo.FileName}'. To resolve this:.\n\n"
+        + $"[1] Ensure that '{aStartInfo.FileName}' is installed and can be found in one of the PATH directories.\n"
+        + $"    Current PATH enviroment variable is: {Environment.GetEnvironmentVariable("PATH")}\n"
+        + "    Make sure the executable is in one of those directories, or update your PATH.\n\n"
+        + "[2] See the InnerException for further details of the cause.";
+      throw new InvalidOperationException(message, ex);
+    }
+  }
+
+  /// <summary>
+  /// Launches a node process and assigns it to the job object for proper cleanup.
+  /// Uses CREATE_SUSPENDED to ensure the process is in the job before it spawns children.
+  /// </summary>
+  private static Process? LaunchNodeProcessWithJobTracking(ProcessStartInfo aStartInfo)
+  {
+    if (!OperatingSystem.IsWindows())
+    {
+      return LaunchNodeProcess(aStartInfo);
+    }
+
+    try
+    {
+      Process? process = ChildProcessTracker.StartProcessInJob(aStartInfo);
+
+      if (process != null)
+      {
+        process.EnableRaisingEvents = true;
+        Console.WriteLine(
+          $"*** LaunchNodeProcessWithJobTracking: Started process {process.Id} in job."
+        );
+      }
+
+      return process;
+    }
+    catch (Exception ex)
+    {
+      string message =
+        $"Failed to start '{aStartInfo.FileName}'. To resolve this:.\n\n"
+        + $"[1] Ensure that '{aStartInfo.FileName}' is installed and can be found in one of the PATH directories.\n"
+        + $"    Current PATH enviroment variable is: {Environment.GetEnvironmentVariable("PATH")}\n"
+        + "    Make sure the executable is in one of those directories, or update your PATH.\n\n"
+        + "[2] See the InnerException for further details of the cause.";
+      throw new InvalidOperationException(message, ex);
+    }
+  }
+
+  private static string StripAnsiColors(string aLine) =>
+    ANSI_COLOR_REGEX.Replace(aLine, string.Empty);
+
+  private void AttachToLogger(
+    string aSpaDevServerName,
+    IHubContext<SpaDevServerLogHub, ISpaDevServerLogHub>? aSpaDevServerLogHub
+  )
+  {
+    void StdErrOnReceivedLine(string aLine)
+    {
+      if (string.IsNullOrWhiteSpace(aLine))
+      {
+        return;
+      }
+
+      // NPM tasks commonly emit ANSI colors, but it wouldn't make sense to forward
+      // those to loggers (because a logger isn't necessarily any kind of terminal)
+      // making this console for debug purpose
+      if (aLine.StartsWith("<s>"))
+      {
+        aLine = aLine[3..];
+      }
+
+      aSpaDevServerLogHub?.Clients.All.ReceiveLogEntry(aSpaDevServerName, aLine, aIsError: true);
+
+      if (_logger == null)
+      {
+        Console.Error.WriteLine($"[{aSpaDevServerName}]: {aLine}");
+      }
+      else
+      {
+        string effectiveLine = StripAnsiColors(aLine).TrimEnd('\n');
+        _logger.LogError("[{SpaDevServerName}]: {EffectiveLine}", aSpaDevServerName, effectiveLine);
+      }
+    }
+
+    void StdOutOnReceivedLine(string aLine)
+    {
+      aSpaDevServerLogHub?.Clients.All.ReceiveLogEntry(aSpaDevServerName, aLine);
+
+      if (_logger == null)
+      {
+        Console.WriteLine($"[{aSpaDevServerName}]: {aLine}");
+      }
+      else
+      {
+        string effectiveLine = StripAnsiColors(aLine).TrimEnd('\n');
+        _logger.LogInformation(
+          "[{SpaDevServerName}]: {EffectiveLine}",
+          aSpaDevServerName,
+          effectiveLine
+        );
+      }
+    }
+
+    // When the NPM task emits complete lines, pass them through to the real logger
+    StdOut!.OnReceivedLine += StdOutOnReceivedLine;
+    StdErr!.OnReceivedLine += StdErrOnReceivedLine;
+
+    // But when it emits incomplete lines, assume this is progress information and
+    // hence just pass it through to StdOut regardless of logger config.
+    StdErr.OnReceivedChunk += aChunk =>
+    {
+      if (aChunk.Array == null)
+      {
+        return;
+      }
+
+      bool containsNewline = Array.IndexOf(aChunk.Array, '\n', aChunk.Offset, aChunk.Count) >= 0;
+
+      if (!containsNewline)
+      {
+        _logger?.LogInformation("{Chunk}", new string(aChunk.Array));
+      }
+    };
+  }
+
+  private State<SpaDevServerActorState, ISpaDevServerActorData> StartProcessCommandHandle(
+    ISpaDevServerActorData aSpaMiddlewareActorData
+  )
+  {
+    SpaSettings? spaSettings = aSpaMiddlewareActorData?.SpaSettings;
+    string? basePublicPath = aSpaMiddlewareActorData?.BasePublicPath;
+    string? regex = spaSettings?.Regex;
+
+    if (spaSettings == null)
+    {
+      _logger?.LogError("{SpaSettings} is null", nameof(spaSettings));
+
+      return GoTo(SpaDevServerActorState.Error);
+    }
+
+    if (basePublicPath == null)
+    {
+      _logger?.LogError("{BasePublicPath} is null", nameof(basePublicPath));
+
+      return GoTo(SpaDevServerActorState.Error);
+    }
+
+    _logger?.LogInformation(
+      "BasePublicPath: {BasePublicPath}, SpaSettings: {SpaSettings}",
+      basePublicPath,
+      JsonSerializer.Serialize(spaSettings, DEFAULT_JSON_SERIALIZER_OPTIONS)
+    );
+
+    spaSettings.Environment.TryAdd("BASE_PUBLIC_PATH", basePublicPath);
+
+    ProcessStartInfo? processStartInfo = spaSettings?.GetProcessStartInfo();
+
+    if (processStartInfo == null)
+    {
+      _logger?.LogError("{ProcessStartInfo} is null", nameof(processStartInfo));
+
+      return GoTo(SpaDevServerActorState.Error);
+    }
+
+    _logger?.LogInformation(
+      "{ProcessStartInfo}: {FileName} {Arguments} (cwd: '{WorkingDirectory}')",
+      nameof(processStartInfo),
+      processStartInfo.FileName,
+      processStartInfo.Arguments,
+      processStartInfo.WorkingDirectory
+    );
+
+    RunnerProcess = LaunchNodeProcessWithJobTracking(processStartInfo);
+
+    if (RunnerProcess == null)
+    {
+      _logger?.LogError("{RunnerProcess} is null", nameof(RunnerProcess));
+
+      return GoTo(SpaDevServerActorState.Error);
+    }
+
+    StdOut = new EventedStreamReader(RunnerProcess.StandardOutput);
+    StdErr = new EventedStreamReader(RunnerProcess.StandardError);
+
+    AttachToLogger(spaSettings?.SpaRootPath ?? "??", _spaDevServerLogHub);
+
+    using EventedStreamStringReader stdErrReader = new EventedStreamStringReader(StdErr);
+
+    // Although the Vue dev server may eventually tell us the URL it's listening on,
+    // it doesn't do so until it's finished compiling, and even then only if there were
+    // no compiler warnings. So instead of waiting for that, consider it ready as soon
+    // as it starts listening for requests.
+    StdOut
+      .WaitForMatch(
+        new Regex(
+          !string.IsNullOrWhiteSpace(regex) ? regex : DEFAULT_REGEX,
+          RegexOptions.None,
+          REGEX_MATCH_TIMEOUT
+        )
+      )
+      .PipeTo(
+        Self,
+        Self,
+        () => new StdOutMatchResponse(true),
+        (aException) => new StdOutMatchResponse(false, aException)
+      );
+
+    return Stay();
+  }
+
+  private State<SpaDevServerActorState, ISpaDevServerActorData> StdOutMatchResponseHandle(
+    bool aSuccess,
+    Exception? aException = null
+  )
+  {
+    if (aSuccess)
+    {
+      _logger?.LogInformation("*** SPA Dev-Server appears to be ready!");
+
+      return GoTo(SpaDevServerActorState.Started);
+    }
+
+    _logger?.LogError(aException, "*** StdOut could not match!");
+
+    if (_nbrRetrys < MAX_NBR_RETRYS)
+    {
+      ++_nbrRetrys;
+
+      Timers?.StartSingleTimer(
+        nameof(StartProcessCommand),
+        new StartProcessCommand(),
+        TimeSpan.FromSeconds(5 * _nbrRetrys + 5)
+      );
+
+      return Stay();
+    }
+    else
+    {
+      _logger?.LogError("*** Max Number retries reached!");
+
+      return GoTo(SpaDevServerActorState.Error);
+    }
+  }
+}

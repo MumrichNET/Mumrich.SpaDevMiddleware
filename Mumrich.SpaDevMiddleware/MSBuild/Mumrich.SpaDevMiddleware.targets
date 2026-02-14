@@ -4,7 +4,11 @@
       Importance="high"
       Text="Installing dependencies for SpaApp: '%(SpaRoot.Identity)'..."
     />
-    <Exec WorkingDirectory="%(SpaRoot.Identity)" Command="%(SpaRoot.InstallCommand)" />
+    <Exec
+      WorkingDirectory="%(SpaRoot.Identity)"
+      Command="%(SpaRoot.InstallCommand)"
+      ConsoleToMsBuild="true"
+    />
   </Target>
   <Target Name="PublishSpas" AfterTargets="ComputeFilesToPublish">
     <Message Importance="high" Text="Build Single Page App: '%(SpaRoot.Identity)' ..." />
@@ -12,6 +16,7 @@
       EnvironmentVariables="%(SpaRoot.BuildEnv)"
       WorkingDirectory="%(SpaRoot.Identity)"
       Command="%(SpaRoot.BuildCommand)"
+      ConsoleToMsBuild="true"
     />
     <ItemGroup>
       <DistFiles Include="%(SpaRoot.BuildOutputPath)" />

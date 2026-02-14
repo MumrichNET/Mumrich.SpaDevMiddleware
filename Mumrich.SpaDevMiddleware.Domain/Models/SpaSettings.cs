@@ -4,6 +4,9 @@ using Mumrich.SpaDevMiddleware.Domain.Types;
 
 namespace Mumrich.SpaDevMiddleware.Domain.Models
 {
+  /// <summary>
+  /// Settings of a single-page-application
+  /// </summary>
   public class SpaSettings
   {
     /// <summary>
@@ -28,6 +31,10 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// </summary>
     public string CorsPolicy { get; set; }
 
+    /// <summary>
+    /// Optional custom YARP (Yet Another Reverse Proxy) configuration for this SPA.
+    /// When set, this configuration is used instead of the default generated proxy settings.
+    /// </summary>
     public SpaProxyConfig CustomYarpConfiguration { get; set; }
 
     /// <summary>
@@ -44,6 +51,11 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     public Dictionary<string, string> Environment { get; set; } = new Dictionary<string, string>();
 
     /// <summary>
+    /// Whether the health-check within YARP is enabled.
+    /// </summary>
+    public bool HealthCheckEnabled { get; set; } = true;
+
+    /// <summary>
     /// The output-path of the built/published app.
     /// Usually, this is the name of a folder within <see cref="SpaRootPath"/>.
     /// E. g.: 'dist'.
@@ -51,7 +63,7 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     public string NodeBuildOutputPath { get; set; } = "dist";
 
     /// <summary>
-    /// The build-commmand for the spa to build/publish
+    /// The build-command for the spa to build/publish
     /// E. g.: 'npm run build' or 'yarn build', etc.
     /// </summary>
     public string NodeBuildScript { get; set; } = "build";
@@ -62,10 +74,15 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     public NodePackageManager NodePackageManager { get; set; } = NodePackageManager.Yarn;
 
     /// <summary>
-    /// The star-command for the dev-server to launch
+    /// The start-command for the dev-server to launch
     /// E. g.: 'npm run dev' or 'yarn run', etc.
     /// </summary>
     public string NodeStartScript { get; set; } = "dev";
+
+    /// <summary>
+    /// The name of the environment variable that stores the parent process ID. 'PARENT_PID' by default.
+    /// </summary>
+    public string ParentProcessIdEnvVarName { get; set; } = "PARENT_PID";
 
     /// <summary>
     /// A regular-expression that matches when the dev-server has successfully started.
@@ -75,14 +92,14 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// <summary>
     /// The RegExp for detecting SPA-Assets requests.
     /// </summary>
-    //language=regexp
+    // language=regexp
     public string SpaAssetsExpression { get; set; } =
-      "^(src|node_modules|favicon.+|@[a-zA-Z]+|.*vite.*|.*\\.json|.*\\.js|.*\\.css|__devtools__.*)$";
+      "^(src|node_modules|favicon.+|@[a-zA-Z]+|.*vite.*|.*\\.json|.*\\.js|.*\\.css|__devtools__.*|__vue-router.*|__open-in-editor.*)$";
 
     /// <summary>
     /// The RegExp for detecting SPA-Root requests.
     /// </summary>
-    //language=regexp
+    // language=regexp
     public string SpaRootExpression { get; set; } = @"^.+\\..+$";
 
     /// <summary>

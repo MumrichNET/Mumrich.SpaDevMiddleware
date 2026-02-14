@@ -12,7 +12,7 @@ public class EventedStreamReader
 
   private readonly StreamReader _streamReader;
 
-  public EventedStreamReader(StreamReader streamReader)
+  public EventedStreamReader(StreamReader? streamReader)
   {
     _streamReader = streamReader ?? throw new ArgumentNullException(nameof(streamReader));
     _linesBuffer = new StringBuilder();
@@ -25,19 +25,19 @@ public class EventedStreamReader
 
   public delegate void OnStreamClosedHandler();
 
-  public event OnReceivedChunkHandler OnReceivedChunk;
+  public event OnReceivedChunkHandler? OnReceivedChunk;
 
-  public event OnReceivedLineHandler OnReceivedLine;
+  public event OnReceivedLineHandler? OnReceivedLine;
 
-  public event OnStreamClosedHandler OnStreamClosed;
+  public event OnStreamClosedHandler? OnStreamClosed;
 
   public Task<Match> WaitForMatch(Regex regex)
   {
     var tcs = new TaskCompletionSource<Match>();
     var completionLock = new object();
 
-    OnReceivedLineHandler onReceivedLineHandler = null;
-    OnStreamClosedHandler onStreamClosedHandler = null;
+    OnReceivedLineHandler? onReceivedLineHandler = null;
+    OnStreamClosedHandler? onStreamClosedHandler = null;
 
     void ResolveIfStillPending(Action applyResolution)
     {

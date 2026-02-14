@@ -16,7 +16,7 @@ public static partial class SpaSettingsExtensions
 {
   public static ProcessStartInfo GetProcessStartInfo(
     this SpaSettings spaSettings,
-    ISpaDevServerSettings spaDevServerSettings = null
+    ISpaMiddlewareSettings? spaDevServerSettings = null
   )
   {
     (string exeName, string completeArguments) = spaSettings.GetCompleteCommand();
@@ -28,7 +28,7 @@ public static partial class SpaSettingsExtensions
       RedirectStandardOutput = true,
       RedirectStandardError = true,
       WorkingDirectory = DirPathHelper.CombineToFullPath(
-        spaDevServerSettings?.SpaRootPath ?? Directory.GetCurrentDirectory(),
+        spaDevServerSettings?.BasePublicPath ?? Directory.GetCurrentDirectory(),
         spaSettings.SpaRootPath
       ),
     };
@@ -43,7 +43,7 @@ public static partial class SpaSettingsExtensions
     return processStartInfo;
   }
 
-  private static string BuildCommand(this SpaSettings spaSettings, string arguments = null)
+  private static string BuildCommand(this SpaSettings spaSettings, string? arguments = null)
   {
     var command = new StringBuilder();
     var isNpm = spaSettings.NodePackageManager == NodePackageManager.Npm;
