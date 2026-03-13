@@ -25,6 +25,7 @@
   <Folder Name="/Source/">
     <Project Path="Mumrich.DDD/Mumrich.DDD.csproj" />
     <Project Path="Mumrich.SpaDevMiddleware.Domain/Mumrich.SpaDevMiddleware.Domain.csproj" />
+    <Project Path="Mumrich.SpaDevMiddleware.MsBuild/Mumrich.SpaDevMiddleware.MsBuild.csproj" />
     <Project Path="Mumrich.SpaDevMiddleware/Mumrich.SpaDevMiddleware.csproj" />
   </Folder>
   <Project Path="Mumrich.SpaDevMiddleware.Demo.WebHost/Mumrich.SpaDevMiddleware.Demo.WebHost.csproj" />
