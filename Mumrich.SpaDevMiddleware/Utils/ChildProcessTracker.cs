@@ -16,7 +16,7 @@ namespace Mumrich.SpaDevMiddleware.Utils;
 /// when the job object handle is closed (which happens automatically when the process exits).
 /// </summary>
 [SupportedOSPlatform("windows")]
-public static class ChildProcessTracker
+public static partial class ChildProcessTracker
 {
   private static readonly Lock LOCK = new();
   private static IntPtr _jobHandle;
@@ -258,8 +258,9 @@ public static class ChildProcessTracker
     // Use reflection to set the internal fields.
     // The .NET Process class provides no public API to attach pre-created stream handles after
     // a process has been started with CreateProcess/CREATE_SUSPENDED. These private field names
-    // (_standardInput, _standardOutput, _standardError) have been stable since .NET Core 1.0;
+    // (_standardInput, _standardOutput, _standardError) have been stable since .NET Core 1.0.
     // verify them against the .NET runtime source if upgrading the target framework.
+#pragma warning disable S3011 // Reflection used to set private fields, which is necessary here due to lack of public API for this scenario.
     FieldInfo? standardInputField = typeof(Process).GetField(
       "_standardInput",
       BindingFlags.NonPublic | BindingFlags.Instance
@@ -272,6 +273,7 @@ public static class ChildProcessTracker
       "_standardError",
       BindingFlags.NonPublic | BindingFlags.Instance
     );
+#pragma warning restore S3011 // Reflection used to set private fields, which is necessary here due to lack of public API for this scenario.
 
     standardInputField?.SetValue(aProcess, stdinStream);
     standardOutputField?.SetValue(aProcess, stdoutStream);
@@ -476,25 +478,30 @@ public static class ChildProcessTracker
   private const uint STARTF_USESTDHANDLES = 0x00000100;
   private const uint HANDLE_FLAG_INHERIT = 0x00000001;
 
-  [DllImport("kernel32.dll", EntryPoint = "CreateJobObjectW", SetLastError = true, CharSet = CharSet.Unicode)]
-  private static extern IntPtr CreateJobObject(IntPtr aSecurityAttributes, string? aName);
+  [LibraryImport(
+    "kernel32.dll",
+    EntryPoint = "CreateJobObjectW",
+    SetLastError = true,
+    StringMarshalling = StringMarshalling.Utf16
+  )]
+  private static partial IntPtr CreateJobObject(IntPtr aSecurityAttributes, string? aName);
 
-  [DllImport("kernel32.dll", SetLastError = true)]
+  [LibraryImport("kernel32.dll", SetLastError = true)]
   [return: MarshalAs(UnmanagedType.Bool)]
-  private static extern bool SetInformationJobObject(
+  private static partial bool SetInformationJobObject(
     IntPtr aJobHandle,
     JobObjectInfoType aInfoType,
     IntPtr aJobObjectInfo,
     uint aJobObjectInfoLength
   );
 
-  [DllImport("kernel32.dll", SetLastError = true)]
+  [LibraryImport("kernel32.dll", SetLastError = true)]
   [return: MarshalAs(UnmanagedType.Bool)]
-  private static extern bool AssignProcessToJobObject(IntPtr aJobHandle, IntPtr aProcessHandle);
+  private static partial bool AssignProcessToJobObject(IntPtr aJobHandle, IntPtr aProcessHandle);
 
-  [DllImport("kernel32.dll", SetLastError = true)]
+  [LibraryImport("kernel32.dll", SetLastError = true)]
   [return: MarshalAs(UnmanagedType.Bool)]
-  private static extern bool CloseHandle(IntPtr aHandle);
+  private static partial bool CloseHandle(IntPtr aHandle);
 
   [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
   [return: MarshalAs(UnmanagedType.Bool)]
@@ -511,8 +518,8 @@ public static class ChildProcessTracker
     out PROCESS_INFORMATION aProcessInformation
   );
 
-  [DllImport("kernel32.dll", SetLastError = true)]
-  private static extern uint ResumeThread(IntPtr aThreadHandle);
+  [LibraryImport("kernel32.dll", SetLastError = true)]
+  private static partial uint ResumeThread(IntPtr aThreadHandle);
 
   [DllImport("kernel32.dll", SetLastError = true)]
   [return: MarshalAs(UnmanagedType.Bool)]
@@ -523,9 +530,9 @@ public static class ChildProcessTracker
     uint aSize
   );
 
-  [DllImport("kernel32.dll", SetLastError = true)]
+  [LibraryImport("kernel32.dll", SetLastError = true)]
   [return: MarshalAs(UnmanagedType.Bool)]
-  private static extern bool SetHandleInformation(IntPtr aObject, uint aMask, uint aFlags);
+  private static partial bool SetHandleInformation(IntPtr aObject, uint aMask, uint aFlags);
 
   private enum JobObjectInfoType
   {
