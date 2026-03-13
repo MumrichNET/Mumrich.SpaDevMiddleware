@@ -50,133 +50,38 @@ public static class ChildProcessTracker
       }
     }
 
-    // Build command line
-    string commandLine = string.IsNullOrEmpty(aStartInfo.Arguments)
-      ? $"\"{aStartInfo.FileName}\""
-      : $"\"{aStartInfo.FileName}\" {aStartInfo.Arguments}";
+    string commandLine = BuildCommandLine(aStartInfo);
+    STARTUPINFO startupInfo = CreateStartupInfoForRedirectedIo();
+    SECURITY_ATTRIBUTES securityAttributes = CreateInheritableSecurityAttributes();
+    RedirectedPipeHandles pipeHandles = RedirectedPipeHandles.Create(ref securityAttributes);
+    pipeHandles.ApplyTo(ref startupInfo);
 
-    // Set up startup info for redirected I/O
-    STARTUPINFO startupInfo = new() { cb = Marshal.SizeOf<STARTUPINFO>(), dwFlags = STARTF_USESTDHANDLES };
-
-    // Set up security attributes for inheritable handles
-    SECURITY_ATTRIBUTES securityAttributes = new()
-    {
-      nLength = Marshal.SizeOf<SECURITY_ATTRIBUTES>(),
-      bInheritHandle = true,
-      lpSecurityDescriptor = IntPtr.Zero,
-    };
-
-    // Create pipes for stdin, stdout, stderr.
-    // The parent-side handle (stdinWrite for stdin; stdoutRead / stderrRead for outputs) is
-    // flagged non-inheritable so the child process does not receive a duplicate of it.
-    IntPtr stdinRead = IntPtr.Zero, stdinWrite = IntPtr.Zero;
-    IntPtr stdoutRead = IntPtr.Zero, stdoutWrite = IntPtr.Zero;
-    IntPtr stderrRead = IntPtr.Zero, stderrWrite = IntPtr.Zero;
+    IntPtr environment = CreateEnvironmentBlockIfNeeded(aStartInfo);
+    PROCESS_INFORMATION processInfo = default;
 
     try
     {
-      (stdinRead, stdinWrite) = CreateInheritablePipe(ref securityAttributes, parentKeepsReadEnd: false, "stdin");
-      (stdoutRead, stdoutWrite) = CreateInheritablePipe(ref securityAttributes, parentKeepsReadEnd: true, "stdout");
-      (stderrRead, stderrWrite) = CreateInheritablePipe(ref securityAttributes, parentKeepsReadEnd: true, "stderr");
-    }
-    catch
-    {
-      if (stdinRead != IntPtr.Zero) CloseHandle(stdinRead);
-      if (stdinWrite != IntPtr.Zero) CloseHandle(stdinWrite);
-      if (stdoutRead != IntPtr.Zero) CloseHandle(stdoutRead);
-      if (stdoutWrite != IntPtr.Zero) CloseHandle(stdoutWrite);
-      if (stderrRead != IntPtr.Zero) CloseHandle(stderrRead);
-      if (stderrWrite != IntPtr.Zero) CloseHandle(stderrWrite);
-      throw;
-    }
-
-    startupInfo.hStdInput = stdinRead;
-    startupInfo.hStdOutput = stdoutWrite;
-    startupInfo.hStdError = stderrWrite;
-
-    // Build environment block if needed
-    IntPtr environment = IntPtr.Zero;
-    if (aStartInfo.Environment.Count > 0 || aStartInfo.EnvironmentVariables.Count > 0)
-    {
-      environment = CreateEnvironmentBlock(aStartInfo);
-    }
-
-    try
-    {
-      // Create process suspended
-      bool created = CreateProcess(
-        null,
-        commandLine,
-        IntPtr.Zero,
-        IntPtr.Zero,
-        true, // inherit handles
-        CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT,
-        environment,
-        aStartInfo.WorkingDirectory,
-        ref startupInfo,
-        out PROCESS_INFORMATION processInfo
-      );
-
-      if (!created)
-      {
-        int error = Marshal.GetLastWin32Error();
-        CloseHandle(stdinRead);
-        CloseHandle(stdinWrite);
-        CloseHandle(stdoutRead);
-        CloseHandle(stdoutWrite);
-        CloseHandle(stderrRead);
-        CloseHandle(stderrWrite);
-        throw new Win32Exception(error, $"Failed to create process: {commandLine}");
-      }
+      processInfo = CreateSuspendedProcess(commandLine, environment, aStartInfo.WorkingDirectory, ref startupInfo);
 
       Console.WriteLine($"*** ChildProcessTracker: Created suspended process {processInfo.dwProcessId}");
 
-      // Assign to job BEFORE resuming
-      lock (LOCK)
-      {
-        bool assigned = AssignProcessToJobObject(_jobHandle, processInfo.hProcess);
-        if (!assigned)
-        {
-          int error = Marshal.GetLastWin32Error();
-          Console.WriteLine(
-            $"*** ChildProcessTracker: Failed to assign suspended process to job. Win32 Error: {error}"
-          );
-        }
-        else
-        {
-          Console.WriteLine($"*** ChildProcessTracker: Assigned suspended process {processInfo.dwProcessId} to job.");
-        }
-      }
+      AssignProcessToJob(processInfo);
+      ResumeCreatedProcess(processInfo);
 
-      // Resume the process
-      uint resumeResult = ResumeThread(processInfo.hThread);
-      if (resumeResult == unchecked((uint)-1))
-      {
-        int error = Marshal.GetLastWin32Error();
-        Console.WriteLine($"*** ChildProcessTracker: Failed to resume process. Win32 Error: {error}");
-      }
-      else
-      {
-        Console.WriteLine($"*** ChildProcessTracker: Resumed process {processInfo.dwProcessId}");
-      }
+      // No longer needed once resumed.
+      CloseHandleIfSet(ref processInfo.hThread);
 
-      // Close the thread handle (we don't need it)
-      CloseHandle(processInfo.hThread);
+      // Child has its own copies now.
+      pipeHandles.CloseChildHandles();
 
-      // Close the child-side handles (the child has its own copies)
-      CloseHandle(stdinRead);
-      CloseHandle(stdoutWrite);
-      CloseHandle(stderrWrite);
-
-      // Get the Process object
       Process process = Process.GetProcessById(processInfo.dwProcessId);
+      AttachStreamsToProcess(process, pipeHandles.StdinWrite, pipeHandles.StdoutRead, pipeHandles.StderrRead);
 
-      // Attach the redirected streams using reflection (Process class doesn't expose this directly)
-      // We need to use the handles we kept (stdinWrite, stdoutRead, stderrRead)
-      AttachStreamsToProcess(process, stdinWrite, stdoutRead, stderrRead);
+      // Stream wrappers now own these handles.
+      pipeHandles.MarkParentHandlesTransferred();
 
-      // Close our process handle (Process object has its own)
-      CloseHandle(processInfo.hProcess);
+      // Process object has its own handle.
+      CloseHandleIfSet(ref processInfo.hProcess);
 
       return process;
     }
@@ -186,7 +91,116 @@ public static class ChildProcessTracker
       {
         Marshal.FreeHGlobal(environment);
       }
+
+      pipeHandles.CloseChildHandles();
+      pipeHandles.CloseParentHandles();
+
+      CloseHandleIfSet(ref processInfo.hThread);
+      CloseHandleIfSet(ref processInfo.hProcess);
     }
+  }
+
+  private static string BuildCommandLine(ProcessStartInfo aStartInfo)
+  {
+    return string.IsNullOrEmpty(aStartInfo.Arguments)
+      ? $"\"{aStartInfo.FileName}\""
+      : $"\"{aStartInfo.FileName}\" {aStartInfo.Arguments}";
+  }
+
+  private static STARTUPINFO CreateStartupInfoForRedirectedIo()
+  {
+    return new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>(), dwFlags = STARTF_USESTDHANDLES };
+  }
+
+  private static SECURITY_ATTRIBUTES CreateInheritableSecurityAttributes()
+  {
+    return new SECURITY_ATTRIBUTES
+    {
+      nLength = Marshal.SizeOf<SECURITY_ATTRIBUTES>(),
+      bInheritHandle = true,
+      lpSecurityDescriptor = IntPtr.Zero,
+    };
+  }
+
+  private static IntPtr CreateEnvironmentBlockIfNeeded(ProcessStartInfo aStartInfo)
+  {
+    if (aStartInfo.Environment.Count == 0 && aStartInfo.EnvironmentVariables.Count == 0)
+    {
+      return IntPtr.Zero;
+    }
+
+    return CreateEnvironmentBlock(aStartInfo);
+  }
+
+  private static PROCESS_INFORMATION CreateSuspendedProcess(
+    string aCommandLine,
+    IntPtr aEnvironment,
+    string? aWorkingDirectory,
+    ref STARTUPINFO aStartupInfo
+  )
+  {
+    bool created = CreateProcess(
+      null,
+      aCommandLine,
+      IntPtr.Zero,
+      IntPtr.Zero,
+      true,
+      CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT,
+      aEnvironment,
+      aWorkingDirectory,
+      ref aStartupInfo,
+      out PROCESS_INFORMATION processInfo
+    );
+
+    if (!created)
+    {
+      int error = Marshal.GetLastWin32Error();
+      throw new Win32Exception(error, $"Failed to create process: {aCommandLine}");
+    }
+
+    return processInfo;
+  }
+
+  private static void AssignProcessToJob(PROCESS_INFORMATION aProcessInfo)
+  {
+    lock (LOCK)
+    {
+      bool assigned = AssignProcessToJobObject(_jobHandle, aProcessInfo.hProcess);
+      if (!assigned)
+      {
+        int error = Marshal.GetLastWin32Error();
+        Console.WriteLine($"*** ChildProcessTracker: Failed to assign suspended process to job. Win32 Error: {error}");
+      }
+      else
+      {
+        Console.WriteLine($"*** ChildProcessTracker: Assigned suspended process {aProcessInfo.dwProcessId} to job.");
+      }
+    }
+  }
+
+  private static void ResumeCreatedProcess(PROCESS_INFORMATION aProcessInfo)
+  {
+    uint resumeResult = ResumeThread(aProcessInfo.hThread);
+    if (resumeResult == unchecked((uint)-1))
+    {
+      int error = Marshal.GetLastWin32Error();
+      Console.WriteLine($"*** ChildProcessTracker: Failed to resume process. Win32 Error: {error}");
+    }
+    else
+    {
+      Console.WriteLine($"*** ChildProcessTracker: Resumed process {aProcessInfo.dwProcessId}");
+    }
+  }
+
+  private static void CloseHandleIfSet(ref IntPtr aHandle)
+  {
+    if (aHandle == IntPtr.Zero)
+    {
+      return;
+    }
+
+    CloseHandle(aHandle);
+    aHandle = IntPtr.Zero;
   }
 
   private static IntPtr CreateEnvironmentBlock(ProcessStartInfo aStartInfo)
@@ -303,22 +317,91 @@ public static class ChildProcessTracker
     }
   }
 
-  /// <summary>
-  /// Creates a pipe where the child-facing handle is inheritable and the parent-facing handle is not.
-  /// </summary>
-  private static (IntPtr read, IntPtr write) CreateInheritablePipe(
-    ref SECURITY_ATTRIBUTES aSecurityAttributes,
-    bool parentKeepsReadEnd,
-    string aPipeName
-  )
+  private sealed class RedirectedPipeHandles
   {
-    if (!CreatePipe(out IntPtr read, out IntPtr write, ref aSecurityAttributes, 0))
-      throw new Win32Exception(Marshal.GetLastWin32Error(), $"Failed to create {aPipeName} pipe");
+    public IntPtr StdinRead;
+    public IntPtr StdinWrite;
+    public IntPtr StdoutRead;
+    public IntPtr StdoutWrite;
+    public IntPtr StderrRead;
+    public IntPtr StderrWrite;
 
-    // Remove the inherit flag from the handle that stays with the parent process
-    SetHandleInformation(parentKeepsReadEnd ? read : write, HANDLE_FLAG_INHERIT, 0);
+    public static RedirectedPipeHandles Create(ref SECURITY_ATTRIBUTES aSecurityAttributes)
+    {
+      RedirectedPipeHandles handles = new();
+      try
+      {
+        (handles.StdinRead, handles.StdinWrite) = CreateInheritablePipe(
+          ref aSecurityAttributes,
+          parentKeepsReadEnd: false,
+          "stdin"
+        );
+        (handles.StdoutRead, handles.StdoutWrite) = CreateInheritablePipe(
+          ref aSecurityAttributes,
+          parentKeepsReadEnd: true,
+          "stdout"
+        );
+        (handles.StderrRead, handles.StderrWrite) = CreateInheritablePipe(
+          ref aSecurityAttributes,
+          parentKeepsReadEnd: true,
+          "stderr"
+        );
 
-    return (read, write);
+        return handles;
+      }
+      catch
+      {
+        handles.CloseChildHandles();
+        handles.CloseParentHandles();
+        throw;
+      }
+    }
+
+    public void ApplyTo(ref STARTUPINFO aStartupInfo)
+    {
+      aStartupInfo.hStdInput = StdinRead;
+      aStartupInfo.hStdOutput = StdoutWrite;
+      aStartupInfo.hStdError = StderrWrite;
+    }
+
+    public void CloseChildHandles()
+    {
+      CloseHandleIfSet(ref StdinRead);
+      CloseHandleIfSet(ref StdoutWrite);
+      CloseHandleIfSet(ref StderrWrite);
+    }
+
+    public void CloseParentHandles()
+    {
+      CloseHandleIfSet(ref StdinWrite);
+      CloseHandleIfSet(ref StdoutRead);
+      CloseHandleIfSet(ref StderrRead);
+    }
+
+    public void MarkParentHandlesTransferred()
+    {
+      StdinWrite = IntPtr.Zero;
+      StdoutRead = IntPtr.Zero;
+      StderrRead = IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// Creates a pipe where the child-facing handle is inheritable and the parent-facing handle is not.
+    /// </summary>
+    private static (IntPtr read, IntPtr write) CreateInheritablePipe(
+      ref SECURITY_ATTRIBUTES aSecurityAttributes,
+      bool parentKeepsReadEnd,
+      string aPipeName
+    )
+    {
+      if (!CreatePipe(out IntPtr read, out IntPtr write, ref aSecurityAttributes, 0))
+        throw new Win32Exception(Marshal.GetLastWin32Error(), $"Failed to create {aPipeName} pipe");
+
+      // Remove the inherit flag from the handle that stays with the parent process
+      SetHandleInformation(parentKeepsReadEnd ? read : write, HANDLE_FLAG_INHERIT, 0);
+
+      return (read, write);
+    }
   }
 
   private static void InitializeJobObject()

@@ -187,55 +187,83 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
     IHubContext<SpaDevServerLogHub, ISpaDevServerLogHub>? aSpaDevServerLogHub
   )
   {
-    // NPM tasks commonly emit ANSI colors, but it wouldn't make sense to forward
-    // those to loggers (because a logger isn't necessarily any kind of terminal).
-    void DispatchLogLine(string aLine, bool aIsError)
-    {
-      aSpaDevServerLogHub?.Clients.All.ReceiveLogEntry(aSpaDevServerName, aLine, aIsError: aIsError);
-      string effectiveLine = StripAnsiColors(aLine).TrimEnd('\n');
-
-      if (_logger == null)
-      {
-        if (aIsError) Console.Error.WriteLine($"[{aSpaDevServerName}]: {aLine}");
-        else Console.WriteLine($"[{aSpaDevServerName}]: {aLine}");
-      }
-      else if (aIsError)
-      {
-        _logger.LogError("[{SpaDevServerName}]: {EffectiveLine}", aSpaDevServerName, effectiveLine);
-      }
-      else
-      {
-        _logger.LogInformation("[{SpaDevServerName}]: {EffectiveLine}", aSpaDevServerName, effectiveLine);
-      }
-    }
-
-    void StdErrOnReceivedLine(string aLine)
-    {
-      if (string.IsNullOrWhiteSpace(aLine)) return;
-      if (aLine.StartsWith("<s>")) aLine = aLine[3..];
-      DispatchLogLine(aLine, aIsError: true);
-    }
-
     // When the NPM task emits complete lines, pass them through to the real logger
-    StdOut!.OnReceivedLine += aLine => DispatchLogLine(aLine, aIsError: false);
-    StdErr!.OnReceivedLine += StdErrOnReceivedLine;
+    StdOut!.OnReceivedLine += aLine => ForwardLogLine(aSpaDevServerName, aSpaDevServerLogHub, aLine, aIsError: false);
+    StdErr!.OnReceivedLine += aLine => HandleStdErrLine(aSpaDevServerName, aSpaDevServerLogHub, aLine);
 
     // But when it emits incomplete lines, assume this is progress information and
     // hence just pass it through to StdOut regardless of logger config.
-    StdErr.OnReceivedChunk += aChunk =>
+    StdErr.OnReceivedChunk += HandleStdErrChunk;
+  }
+
+  private void HandleStdErrLine(
+    string aSpaDevServerName,
+    IHubContext<SpaDevServerLogHub, ISpaDevServerLogHub>? aSpaDevServerLogHub,
+    string aLine
+  )
+  {
+    if (string.IsNullOrWhiteSpace(aLine))
     {
-      if (aChunk.Array == null)
-      {
-        return;
-      }
+      return;
+    }
 
-      bool containsNewline = Array.IndexOf(aChunk.Array, '\n', aChunk.Offset, aChunk.Count) >= 0;
+    string effectiveLine = aLine.StartsWith("<s>") ? aLine[3..] : aLine;
+    ForwardLogLine(aSpaDevServerName, aSpaDevServerLogHub, effectiveLine, aIsError: true);
+  }
 
-      if (!containsNewline)
-      {
-        _logger?.LogInformation("{Chunk}", new string(aChunk.Array));
-      }
-    };
+  private void HandleStdErrChunk(ArraySegment<char> aChunk)
+  {
+    if (aChunk.Array == null)
+    {
+      return;
+    }
+
+    bool containsNewline = Array.IndexOf(aChunk.Array, '\n', aChunk.Offset, aChunk.Count) >= 0;
+    if (!containsNewline)
+    {
+      _logger?.LogInformation("{Chunk}", new string(aChunk.Array));
+    }
+  }
+
+  // NPM tasks commonly emit ANSI colors, but forwarding raw ANSI sequences to
+  // structured logs is noisy and often unreadable outside terminals.
+  private void ForwardLogLine(
+    string aSpaDevServerName,
+    IHubContext<SpaDevServerLogHub, ISpaDevServerLogHub>? aSpaDevServerLogHub,
+    string aLine,
+    bool aIsError
+  )
+  {
+    aSpaDevServerLogHub?.Clients.All.ReceiveLogEntry(aSpaDevServerName, aLine, aIsError: aIsError);
+    string effectiveLine = StripAnsiColors(aLine).TrimEnd('\n');
+
+    if (_logger == null)
+    {
+      WriteToConsoleFallback(aSpaDevServerName, aLine, aIsError);
+
+      return;
+    }
+
+    if (aIsError)
+    {
+      _logger.LogError("[{SpaDevServerName}]: {EffectiveLine}", aSpaDevServerName, effectiveLine);
+
+      return;
+    }
+
+    _logger.LogInformation("[{SpaDevServerName}]: {EffectiveLine}", aSpaDevServerName, effectiveLine);
+  }
+
+  private static void WriteToConsoleFallback(string aSpaDevServerName, string aLine, bool aIsError)
+  {
+    if (aIsError)
+    {
+      Console.Error.WriteLine($"[{aSpaDevServerName}]: {aLine}");
+
+      return;
+    }
+
+    Console.WriteLine($"[{aSpaDevServerName}]: {aLine}");
   }
 
   private State<SpaDevServerActorState, ISpaDevServerActorData> StartProcessCommandHandle(
