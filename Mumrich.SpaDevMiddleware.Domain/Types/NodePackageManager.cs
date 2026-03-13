@@ -5,6 +5,7 @@ namespace Mumrich.SpaDevMiddleware.Domain.Types
     Npm,
     Yarn,
     Npx,
-    Pnpm
+    Pnpm,
+    VitePlus
   }
 }
