@@ -12,7 +12,18 @@ overrides:
   '@vue/server-renderer': 'beta'
   '@vue/shared': 'beta'
   '@vue/compat': 'beta'
+  vite: 'catalog:'
+  vitest: 'catalog:'
 
 peerDependencyRules:
   allowAny:
     - 'vue'
+    - vite
+    - vitest
+  allowedVersions:
+    vite: '*'
+    vitest: '*'
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@latest
+  vitest: npm:@voidzero-dev/vite-plus-test@latest
+  vite-plus: latest
