@@ -23,6 +23,12 @@ namespace Mumrich.SpaDevMiddleware.Extensions;
 /// </summary>
 public static class WebApplicationBuilderExtensions
 {
+  private const string SpaMiddlewarePolicyName = "spa-middleware-policy";
+  private const string ConsecutiveFailuresThresholdKey = "ConsecutiveFailuresHealthPolicy.Threshold";
+  private const string ConsecutiveFailuresThreshold = "3";
+  private const string HealthCheckInterval = "00:00:10";
+  private const string HealthCheckTimeout = "00:00:15";
+
   private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 
   public static void SetupSpaMiddleware(
@@ -66,7 +72,7 @@ public static class WebApplicationBuilderExtensions
     aBuilder.Services.AddHostedService<SpaDevelopmentService>();
     aBuilder.Services.AddReverseProxy().LoadFromConfig(reverseProxyConfig);
     aBuilder.Services.AddRequestTimeouts(aOptions =>
-      aOptions.AddPolicy("spa-middleware-policy", TimeSpan.FromSeconds(20))
+      aOptions.AddPolicy(SpaMiddlewarePolicyName, TimeSpan.FromSeconds(20))
     );
   }
 
@@ -182,8 +188,8 @@ public static class WebApplicationBuilderExtensions
       Active = new ActiveHealthCheck
       {
         Enabled = aSpaSettings.HealthCheckEnabled.ToString().ToLowerInvariant(),
-        Interval = "00:00:10",
-        Timeout = "00:00:15",
+        Interval = HealthCheckInterval,
+        Timeout = HealthCheckTimeout,
         Policy = "ConsecutiveFailures",
         Path = aPath,
       },
@@ -191,7 +197,7 @@ public static class WebApplicationBuilderExtensions
 
     proxyRouteConfig["Metadata"] = new Dictionary<string, string>
     {
-      { "ConsecutiveFailuresHealthPolicy.Threshold", "3" },
+      { ConsecutiveFailuresThresholdKey, ConsecutiveFailuresThreshold },
     };
 
     return SerializeToJsonObject(

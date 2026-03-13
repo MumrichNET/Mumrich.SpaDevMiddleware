@@ -26,6 +26,8 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
 {
   private const string DEFAULT_REGEX = "running at";
   private const int MAX_NBR_RETRYS = 10;
+  private const int RETRY_BACKOFF_BASE_SECONDS = 5;
+  private const int RETRY_BACKOFF_SECONDS_PER_ATTEMPT = 5;
   private static readonly Regex ANSI_COLOR_REGEX = new(
     "\x001b\\[[0-9;]*m",
     RegexOptions.None,
@@ -79,6 +81,7 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
       aContext =>
         aContext.FsmEvent switch
         {
+          // Terminal state: dev-server is running; no further FSM transitions defined.
           _ => null,
         }
     );
@@ -88,10 +91,14 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
       aContext =>
         aContext.FsmEvent switch
         {
+          // Terminal state: unrecoverable error after MAX_NBR_RETRYS exhausted.
           _ => null,
         }
     );
+  }
 
+  protected override void PreStart()
+  {
     Self.Tell(new StartProcessCommand());
   }
 
@@ -133,13 +140,7 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
     }
     catch (Exception ex)
     {
-      string message =
-        $"Failed to start '{aStartInfo.FileName}'. To resolve this:.\n\n"
-        + $"[1] Ensure that '{aStartInfo.FileName}' is installed and can be found in one of the PATH directories.\n"
-        + $"    Current PATH enviroment variable is: {Environment.GetEnvironmentVariable("PATH")}\n"
-        + "    Make sure the executable is in one of those directories, or update your PATH.\n\n"
-        + "[2] See the InnerException for further details of the cause.";
-      throw new InvalidOperationException(message, ex);
+      throw new InvalidOperationException(BuildNodeLaunchErrorMessage(aStartInfo.FileName), ex);
     }
   }
 
@@ -167,15 +168,16 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
     }
     catch (Exception ex)
     {
-      string message =
-        $"Failed to start '{aStartInfo.FileName}'. To resolve this:.\n\n"
-        + $"[1] Ensure that '{aStartInfo.FileName}' is installed and can be found in one of the PATH directories.\n"
-        + $"    Current PATH enviroment variable is: {Environment.GetEnvironmentVariable("PATH")}\n"
-        + "    Make sure the executable is in one of those directories, or update your PATH.\n\n"
-        + "[2] See the InnerException for further details of the cause.";
-      throw new InvalidOperationException(message, ex);
+      throw new InvalidOperationException(BuildNodeLaunchErrorMessage(aStartInfo.FileName), ex);
     }
   }
+
+  private static string BuildNodeLaunchErrorMessage(string aExecutableName) =>
+    $"Failed to start '{aExecutableName}'. To resolve this:.\n\n"
+    + $"[1] Ensure that '{aExecutableName}' is installed and can be found in one of the PATH directories.\n"
+    + $"    Current PATH enviroment variable is: {Environment.GetEnvironmentVariable("PATH")}\n"
+    + "    Make sure the executable is in one of those directories, or update your PATH.\n\n"
+    + "[2] See the InnerException for further details of the cause.";
 
   private static string StripAnsiColors(string aLine) =>
     ANSI_COLOR_REGEX.Replace(aLine, string.Empty);
@@ -185,55 +187,37 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
     IHubContext<SpaDevServerLogHub, ISpaDevServerLogHub>? aSpaDevServerLogHub
   )
   {
-    void StdErrOnReceivedLine(string aLine)
+    // NPM tasks commonly emit ANSI colors, but it wouldn't make sense to forward
+    // those to loggers (because a logger isn't necessarily any kind of terminal).
+    void DispatchLogLine(string aLine, bool aIsError)
     {
-      if (string.IsNullOrWhiteSpace(aLine))
-      {
-        return;
-      }
-
-      // NPM tasks commonly emit ANSI colors, but it wouldn't make sense to forward
-      // those to loggers (because a logger isn't necessarily any kind of terminal)
-      // making this console for debug purpose
-      if (aLine.StartsWith("<s>"))
-      {
-        aLine = aLine[3..];
-      }
-
-      aSpaDevServerLogHub?.Clients.All.ReceiveLogEntry(aSpaDevServerName, aLine, aIsError: true);
+      aSpaDevServerLogHub?.Clients.All.ReceiveLogEntry(aSpaDevServerName, aLine, aIsError: aIsError);
+      string effectiveLine = StripAnsiColors(aLine).TrimEnd('\n');
 
       if (_logger == null)
       {
-        Console.Error.WriteLine($"[{aSpaDevServerName}]: {aLine}");
+        if (aIsError) Console.Error.WriteLine($"[{aSpaDevServerName}]: {aLine}");
+        else Console.WriteLine($"[{aSpaDevServerName}]: {aLine}");
+      }
+      else if (aIsError)
+      {
+        _logger.LogError("[{SpaDevServerName}]: {EffectiveLine}", aSpaDevServerName, effectiveLine);
       }
       else
       {
-        string effectiveLine = StripAnsiColors(aLine).TrimEnd('\n');
-        _logger.LogError("[{SpaDevServerName}]: {EffectiveLine}", aSpaDevServerName, effectiveLine);
+        _logger.LogInformation("[{SpaDevServerName}]: {EffectiveLine}", aSpaDevServerName, effectiveLine);
       }
     }
 
-    void StdOutOnReceivedLine(string aLine)
+    void StdErrOnReceivedLine(string aLine)
     {
-      aSpaDevServerLogHub?.Clients.All.ReceiveLogEntry(aSpaDevServerName, aLine);
-
-      if (_logger == null)
-      {
-        Console.WriteLine($"[{aSpaDevServerName}]: {aLine}");
-      }
-      else
-      {
-        string effectiveLine = StripAnsiColors(aLine).TrimEnd('\n');
-        _logger.LogInformation(
-          "[{SpaDevServerName}]: {EffectiveLine}",
-          aSpaDevServerName,
-          effectiveLine
-        );
-      }
+      if (string.IsNullOrWhiteSpace(aLine)) return;
+      if (aLine.StartsWith("<s>")) aLine = aLine[3..];
+      DispatchLogLine(aLine, aIsError: true);
     }
 
     // When the NPM task emits complete lines, pass them through to the real logger
-    StdOut!.OnReceivedLine += StdOutOnReceivedLine;
+    StdOut!.OnReceivedLine += aLine => DispatchLogLine(aLine, aIsError: false);
     StdErr!.OnReceivedLine += StdErrOnReceivedLine;
 
     // But when it emits incomplete lines, assume this is progress information and
@@ -370,7 +354,7 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
       Timers?.StartSingleTimer(
         nameof(StartProcessCommand),
         new StartProcessCommand(),
-        TimeSpan.FromSeconds(5 * _nbrRetrys + 5)
+        TimeSpan.FromSeconds(RETRY_BACKOFF_BASE_SECONDS + RETRY_BACKOFF_SECONDS_PER_ATTEMPT * _nbrRetrys)
       );
 
       return Stay();

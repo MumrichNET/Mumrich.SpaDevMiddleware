@@ -66,30 +66,29 @@ public static class ChildProcessTracker
       lpSecurityDescriptor = IntPtr.Zero,
     };
 
-    // Create pipes for stdin, stdout, stderr
-    if (!CreatePipe(out IntPtr stdinRead, out IntPtr stdinWrite, ref securityAttributes, 0))
-    {
-      throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to create stdin pipe");
-    }
-    SetHandleInformation(stdinWrite, HANDLE_FLAG_INHERIT, 0);
+    // Create pipes for stdin, stdout, stderr.
+    // The parent-side handle (stdinWrite for stdin; stdoutRead / stderrRead for outputs) is
+    // flagged non-inheritable so the child process does not receive a duplicate of it.
+    IntPtr stdinRead = IntPtr.Zero, stdinWrite = IntPtr.Zero;
+    IntPtr stdoutRead = IntPtr.Zero, stdoutWrite = IntPtr.Zero;
+    IntPtr stderrRead = IntPtr.Zero, stderrWrite = IntPtr.Zero;
 
-    if (!CreatePipe(out IntPtr stdoutRead, out IntPtr stdoutWrite, ref securityAttributes, 0))
+    try
     {
-      CloseHandle(stdinRead);
-      CloseHandle(stdinWrite);
-      throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to create stdout pipe");
+      (stdinRead, stdinWrite) = CreateInheritablePipe(ref securityAttributes, parentKeepsReadEnd: false, "stdin");
+      (stdoutRead, stdoutWrite) = CreateInheritablePipe(ref securityAttributes, parentKeepsReadEnd: true, "stdout");
+      (stderrRead, stderrWrite) = CreateInheritablePipe(ref securityAttributes, parentKeepsReadEnd: true, "stderr");
     }
-    SetHandleInformation(stdoutRead, HANDLE_FLAG_INHERIT, 0);
-
-    if (!CreatePipe(out IntPtr stderrRead, out IntPtr stderrWrite, ref securityAttributes, 0))
+    catch
     {
-      CloseHandle(stdinRead);
-      CloseHandle(stdinWrite);
-      CloseHandle(stdoutRead);
-      CloseHandle(stdoutWrite);
-      throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to create stderr pipe");
+      if (stdinRead != IntPtr.Zero) CloseHandle(stdinRead);
+      if (stdinWrite != IntPtr.Zero) CloseHandle(stdinWrite);
+      if (stdoutRead != IntPtr.Zero) CloseHandle(stdoutRead);
+      if (stdoutWrite != IntPtr.Zero) CloseHandle(stdoutWrite);
+      if (stderrRead != IntPtr.Zero) CloseHandle(stderrRead);
+      if (stderrWrite != IntPtr.Zero) CloseHandle(stderrWrite);
+      throw;
     }
-    SetHandleInformation(stderrRead, HANDLE_FLAG_INHERIT, 0);
 
     startupInfo.hStdInput = stdinRead;
     startupInfo.hStdOutput = stdoutWrite;
@@ -304,6 +303,24 @@ public static class ChildProcessTracker
     }
   }
 
+  /// <summary>
+  /// Creates a pipe where the child-facing handle is inheritable and the parent-facing handle is not.
+  /// </summary>
+  private static (IntPtr read, IntPtr write) CreateInheritablePipe(
+    ref SECURITY_ATTRIBUTES aSecurityAttributes,
+    bool parentKeepsReadEnd,
+    string aPipeName
+  )
+  {
+    if (!CreatePipe(out IntPtr read, out IntPtr write, ref aSecurityAttributes, 0))
+      throw new Win32Exception(Marshal.GetLastWin32Error(), $"Failed to create {aPipeName} pipe");
+
+    // Remove the inherit flag from the handle that stays with the parent process
+    SetHandleInformation(parentKeepsReadEnd ? read : write, HANDLE_FLAG_INHERIT, 0);
+
+    return (read, write);
+  }
+
   private static void InitializeJobObject()
   {
     lock (LOCK)
@@ -335,7 +352,7 @@ public static class ChildProcessTracker
         BasicLimitInformation = new JobObjectBasicLimitInformation { LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE },
       };
 
-      int length = Marshal.SizeOf(typeof(JobObjectExtendedLimitInformation));
+      int length = Marshal.SizeOf<JobObjectExtendedLimitInformation>();
       IntPtr extendedInfoPtr = Marshal.AllocHGlobal(length);
 
       try

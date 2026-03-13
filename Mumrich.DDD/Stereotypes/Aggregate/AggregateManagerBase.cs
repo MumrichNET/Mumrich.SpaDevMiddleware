@@ -17,7 +17,7 @@ public abstract class AggregateManagerBase<
 > : UntypedActor
   where TAggregateState : IAggregateState
   where TAggregate : PersistentFSM<TAggregateState, TModel, AggregateEventBase<TAggregate>>
-  where TAggregateReader : AggregateReaderBase<TAggregate, TModel, TQuery>
+  where TAggregateReader : AggregateReaderBase<TAggregate, TModel>
   where TModel : AggregateModelBase<TAggregate, TModel>
   where TCommand : AggregateWriterCommand<TAggregate>
   where TQuery : AggregateReaderQuery<TAggregate>

@@ -8,6 +8,8 @@ namespace Mumrich.SpaDevMiddleware.Utils;
 
 public class EventedStreamReader
 {
+  private const int ReadBufferSize = 8 * 1024;
+
   private readonly StringBuilder _linesBuffer;
 
   private readonly StreamReader _streamReader;
@@ -99,7 +101,7 @@ public class EventedStreamReader
 
   private async Task Run()
   {
-    var buf = new char[8 * 1024];
+    var buf = new char[ReadBufferSize];
     while (true)
     {
       var chunkLength = await _streamReader.ReadAsync(buf, 0, buf.Length);
