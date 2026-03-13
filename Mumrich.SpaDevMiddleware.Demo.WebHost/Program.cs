@@ -32,8 +32,8 @@ public static class Program
           new SpaSettings()
           {
             DevServerAddress = "http://localhost:3000/",
-            SpaRootPath = "Apps/vue-demo-app",
-            NodePackageManager = NodePackageManager.Pnpm,
+            SpaRootPath = "Apps/vue-app",
+            NodePackageManager = NodePackageManager.VitePlus,
           }
         },
       },

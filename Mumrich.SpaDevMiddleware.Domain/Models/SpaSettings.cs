@@ -71,7 +71,7 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// <summary>
     /// The npm-compatible package-manager to use.
     /// </summary>
-    public NodePackageManager NodePackageManager { get; set; } = NodePackageManager.Yarn;
+    public NodePackageManager NodePackageManager { get; set; } = NodePackageManager.Npm;
 
     /// <summary>
     /// The start-command for the dev-server to launch

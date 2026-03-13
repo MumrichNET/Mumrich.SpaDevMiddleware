@@ -48,11 +48,7 @@ public static partial class SpaSettingsExtensions
     var command = new StringBuilder();
     var isNpm = spaSettings.NodePackageManager == NodePackageManager.Npm;
 
-    if (isNpm)
-    {
-      command.Append("run ");
-    }
-
+    command.Append("run ");
     command.Append(spaSettings.NodeStartScript);
     command.Append(' ');
 
@@ -99,6 +95,7 @@ public static partial class SpaSettingsExtensions
       NodePackageManager.Yarn => "yarn",
       NodePackageManager.Npx => "npx",
       NodePackageManager.Pnpm => "pnpm",
+      NodePackageManager.VitePlus => "vp",
       _ => "npm",
     };
   }

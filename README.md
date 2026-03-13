@@ -7,6 +7,9 @@
     - [Credits](#credits)
   - [License](#license)
   - [Changelog](#changelog)
+    - [1.7](#17)
+      - [Features](#features)
+      - [Breaking Changes](#breaking-changes)
     - [1.6](#16)
       - [Features](#features)
     - [1.5](#15)
@@ -123,6 +126,19 @@ A .NET Middleware for **ASP.NET Core** that automatically integrates (multiple) 
 This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
 
 ## Changelog
+
+### 1.7
+
+#### Features
+
+- Added **VitePlus** support via `NodePackageManager.VitePlus` (`vp` command).
+- Updated the Demo WebHost SPA example to a `vue-app` setup using VitePlus (`vp install`, `vp run build`).
+- Improved script execution consistency by invoking start scripts with `run` in middleware command generation.
+- Updated build/dependency tooling (e.g. GitVersion `6.6.0`, Akka `1.5.62`, Cake.Frosting `6.1.0`).
+
+#### Breaking Changes
+
+- Changed the default `NodePackageManager` from `Yarn` to `Npm` when not explicitly configured.
 
 ### 1.6
 

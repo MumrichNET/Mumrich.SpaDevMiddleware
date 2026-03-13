@@ -1,27 +1,34 @@
-namespace Mumrich.SpaDevMiddleware.MsBuild;
+using System.Collections.Generic;
+using System.Linq;
 
-public class SpaAppSettingsProviderTask : MsBuildTaskBase
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+namespace Mumrich.SpaDevMiddleware.MsBuild
 {
-  [Required]
-  public ITaskItem[] SpaApps { get; set; }
-
-  [Output]
-  public TaskItem[] SpaRoots { get; set; }
-
-  public override bool Execute()
+  public class SpaAppSettingsProviderTask : MsBuildTaskBase
   {
-    foreach (ITaskItem item in SpaApps)
+    [Required]
+    public ITaskItem[] SpaApps { get; set; }
+
+    [Output]
+    public TaskItem[] SpaRoots { get; set; }
+
+    public override bool Execute()
     {
-      Log.LogMessage(MessageImportance.High, $"*** Item: {item.ItemSpec}");
+      foreach (ITaskItem item in SpaApps)
+      {
+        Log.LogMessage(MessageImportance.High, $"*** Item: {item.ItemSpec}");
+      }
+
+      SpaRoots = SpaApps
+        .Select(x => new TaskItem(
+          ConvertToMsBuildCompatiblePath(x.ItemSpec),
+          new Dictionary<string, string> { }
+        ))
+        .ToArray();
+
+      return true;
     }
-
-    SpaRoots = SpaApps
-      .Select(x => new TaskItem(
-        ConvertToMsBuildCompatiblePath(x.ItemSpec),
-        new Dictionary<string, string> { }
-      ))
-      .ToArray();
-
-    return true;
   }
 }
