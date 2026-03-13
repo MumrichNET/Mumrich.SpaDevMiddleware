@@ -16,14 +16,14 @@
   },
   "dependencies": {
     "pinia": "^3.0.4",
-    "vue": "^3.5.28",
-    "vue-router": "^5.0.2"
+    "vue": "beta",
+    "vue-router": "^5.0.3"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
-    "@types/node": "^24.10.13",
-    "@vitejs/plugin-vue": "^6.0.4",
-    "@vue/eslint-config-typescript": "^14.6.0",
+    "@types/node": "^24.12.0",
+    "@vitejs/plugin-vue": "^6.0.5",
+    "@vue/eslint-config-typescript": "^14.7.0",
     "@vue/tsconfig": "^0.8.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-oxlint": "~1.46.0",
@@ -31,10 +31,10 @@
     "jiti": "^2.6.1",
     "npm-run-all2": "^8.0.4",
     "typescript": "~5.9.3",
-    "vite": "catalog:",
-    "vite-plugin-vue-devtools": "^8.0.5",
-    "vue-tsc": "^3.2.4",
-    "vite-plus": "catalog:"
+    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.11",
+    "vite-plugin-vue-devtools": "^8.1.0",
+    "vite-plus": "catalog:",
+    "vue-tsc": "^3.2.5"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
