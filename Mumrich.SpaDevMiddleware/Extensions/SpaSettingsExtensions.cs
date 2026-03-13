@@ -36,7 +36,7 @@ public static partial class SpaSettingsExtensions
     foreach ((string key, string value) in spaSettings.Environment)
     {
       processStartInfo.Environment[key] = EnvVarRegex().IsMatch(value)
-        ? Environment.GetEnvironmentVariable(value.Replace("%", string.Empty))
+        ? Environment.GetEnvironmentVariable(value.Replace("%", string.Empty)) ?? value
         : value;
     }
 

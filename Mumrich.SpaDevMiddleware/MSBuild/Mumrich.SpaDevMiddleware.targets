@@ -1,32 +1,18 @@
 <Project>
   <Target Name="EnsureNodeModulesInstalled" BeforeTargets="Build">
-    <Message
-      Importance="high"
-      Text="Installing dependencies for SpaApp: '%(SpaRoot.Identity)'..."
-    />
-    <Exec
-      WorkingDirectory="%(SpaRoot.Identity)"
-      Command="%(SpaRoot.InstallCommand)"
-      ConsoleToMsBuild="true"
-    />
+    <Message Importance="high" Text="Installing dependencies for SpaApp: '%(SpaRoot.Identity)'..." />
+    <Exec WorkingDirectory="%(SpaRoot.Identity)" Command="%(SpaRoot.InstallCommand)" ConsoleToMsBuild="true" />
   </Target>
   <Target Name="PublishSpas" AfterTargets="ComputeFilesToPublish">
     <Message Importance="high" Text="Build Single Page App: '%(SpaRoot.Identity)' ..." />
-    <Exec
-      EnvironmentVariables="%(SpaRoot.BuildEnv)"
-      WorkingDirectory="%(SpaRoot.Identity)"
-      Command="%(SpaRoot.BuildCommand)"
-      ConsoleToMsBuild="true"
-    />
+    <Exec EnvironmentVariables="%(SpaRoot.BuildEnv)" WorkingDirectory="%(SpaRoot.Identity)" Command="%(SpaRoot.BuildCommand)" ConsoleToMsBuild="true" />
     <ItemGroup>
       <DistFiles Include="%(SpaRoot.BuildOutputPath)" />
-      <ResolvedFileToPublish
-        Include="@(DistFiles-&gt;'%(FullPath)')"
-        Exclude="@(ResolvedFileToPublish)"
-      >
+      <ResolvedFileToPublish Include="@(DistFiles-&gt;'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
         <RelativePath>%(DistFiles.Identity)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </ResolvedFileToPublish>
     </ItemGroup>
+    <Warning Condition="'@(DistFiles)' == ''" Text="No SPA build output found matching '%(SpaRoot.BuildOutputPath)'. Verify '%(SpaRoot.BuildCommand)' completed successfully and the path is correct." />
   </Target>
 </Project>

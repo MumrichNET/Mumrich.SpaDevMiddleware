@@ -16,7 +16,12 @@ public class EventedStreamReader
   {
     _streamReader = streamReader ?? throw new ArgumentNullException(nameof(streamReader));
     _linesBuffer = new StringBuilder();
-    Task.Factory.StartNew(Run);
+    // Observe exceptions from the read loop: treat a faulted reader as a closed stream
+    // so that any pending WaitForMatch tasks complete with an EndOfStreamException.
+    _ = Task.Run(Run).ContinueWith(
+      t => OnClosed(),
+      TaskContinuationOptions.OnlyOnFaulted
+    );
   }
 
   public delegate void OnReceivedChunkHandler(ArraySegment<char> chunk);
@@ -64,10 +69,11 @@ public class EventedStreamReader
       }
     };
 
+    OnReceivedLine += onReceivedLineHandler;
+
     onStreamClosedHandler = () =>
       ResolveIfStillPending(() => tcs.SetException(new EndOfStreamException()));
 
-    OnReceivedLine += onReceivedLineHandler;
     OnStreamClosed += onStreamClosedHandler;
 
     return tcs.Task;

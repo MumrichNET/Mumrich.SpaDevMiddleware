@@ -97,9 +97,9 @@ public static class WebApplicationExtensions
 
         logger.LogInformation("*** {AppPath} Request Path: '{RequestPath}'", aAppPath, requestPath);
 
-        HttpClient httpClient = httpClientFactory.CreateClient();
-        TimeSpan maxWaitTime = TimeSpan.FromSeconds(300);
-        TimeSpan waitInterval = TimeSpan.FromSeconds(2);
+        using HttpClient httpClient = httpClientFactory.CreateClient();
+        TimeSpan maxWaitTime = TimeSpan.FromSeconds(aSpaSettings.DevServerStartupTimeoutSeconds);
+        TimeSpan waitInterval = TimeSpan.FromSeconds(aSpaSettings.DevServerStartupRetryIntervalSeconds);
         DateTime startTime = DateTime.UtcNow;
 
         httpClient.Timeout = TimeSpan.FromSeconds(30);

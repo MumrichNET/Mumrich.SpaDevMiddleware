@@ -8,7 +8,12 @@ namespace Mumrich.SpaDevMiddleware.Domain
 {
   public class DefaultAppSettings : ISpaMiddlewareSettings
   {
-    public Dictionary<string, SpaSettings> SinglePageApps { get; set; } = new Dictionary<string, SpaSettings>();
-    public string BasePublicPath { get; set; } = Directory.GetCurrentDirectory();
+    public Dictionary<string, SpaSettings> SinglePageApps { get; set; } = [];
+
+    public string BasePublicPath
+    {
+      get => field ??= Directory.GetCurrentDirectory();
+      set;
+    }
   }
 }

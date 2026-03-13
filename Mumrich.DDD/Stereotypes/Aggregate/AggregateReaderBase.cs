@@ -5,12 +5,11 @@ using Akka.Event;
 
 namespace Mumrich.DDD.Stereotypes.Aggregate;
 
-public abstract class AggregateReaderBase<TAggregate, TModel, TQuery> : ReceiveActor
+public abstract class AggregateReaderBase<TAggregate, TModel> : ReceiveActor
   where TModel : AggregateModelBase<TAggregate, TModel>
-  where TQuery : AggregateReaderQuery<TAggregate>
 {
   private readonly Guid _aggregateId;
-  private TModel _model;
+  private TModel? _model;
 
   protected AggregateReaderBase(Guid aggregateId)
   {
@@ -20,24 +19,27 @@ public abstract class AggregateReaderBase<TAggregate, TModel, TQuery> : ReceiveA
 
     Receive<AggregateUpdateEvent<TAggregate, TModel>>(OnUpdate);
     Receive<AggregateReaderQuery<TAggregate>>(query =>
-      Sender.Tell(
-        new AggregateReaderResponse<TAggregate, TModel>(_aggregateId, OnReadQuery(query, _model))
-      )
+      Sender.Tell(new AggregateReaderResponse<TAggregate, TModel>(_aggregateId, OnReadQuery(query, _model)))
     );
   }
 
-  protected virtual TModel OnReadQuery(AggregateReaderQuery<TAggregate> query, TModel currentModel)
+  protected virtual TModel? OnReadQuery(AggregateReaderQuery<TAggregate> query, TModel? currentModel)
   {
     return currentModel;
   }
 
   protected virtual void OnUpdate(AggregateUpdateEvent<TAggregate, TModel> @event)
   {
+    if (@event.AggregateId != _aggregateId)
+    {
+      return;
+    }
+
     _model = @event.Model;
   }
 
   protected override void PostStop()
   {
-    Context.System.EventStream.Unsubscribe<AggregateReaderQuery<TAggregate>>(Self);
+    Context.System.EventStream.Unsubscribe<AggregateUpdateEvent<TAggregate, TModel>>(Self);
   }
 }

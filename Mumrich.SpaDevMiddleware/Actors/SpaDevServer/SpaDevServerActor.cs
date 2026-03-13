@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 using Akka.Actor;
 
@@ -32,6 +33,9 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
   );
 
   private static readonly TimeSpan REGEX_MATCH_TIMEOUT = TimeSpan.FromMinutes(5);
+
+  // Per-evaluation timeout prevents catastrophic backtracking on a single log line.
+  private static readonly TimeSpan REGEX_EVAL_TIMEOUT = TimeSpan.FromSeconds(1);
 
   private static readonly JsonSerializerOptions DEFAULT_JSON_SERIALIZER_OPTIONS =
     new JsonSerializerOptions { WriteIndented = true };
@@ -101,7 +105,17 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
 
   protected override void PostStop()
   {
-    RunnerProcess?.Kill();
+    if (RunnerProcess?.HasExited == false)
+    {
+      try
+      {
+        RunnerProcess.Kill(entireProcessTree: true);
+      }
+      catch (Exception ex)
+      {
+        _logger?.LogWarning(ex, "Failed to kill dev-server process during actor shutdown");
+      }
+    }
   }
 
   private static Process? LaunchNodeProcess(ProcessStartInfo aStartInfo)
@@ -147,9 +161,6 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
       if (process != null)
       {
         process.EnableRaisingEvents = true;
-        Console.WriteLine(
-          $"*** LaunchNodeProcessWithJobTracking: Started process {process.Id} in job."
-        );
       }
 
       return process;
@@ -306,18 +317,28 @@ public class SpaDevServerActor : FSM<SpaDevServerActorState, ISpaDevServerActorD
 
     using EventedStreamStringReader stdErrReader = new EventedStreamStringReader(StdErr);
 
-    // Although the Vue dev server may eventually tell us the URL it's listening on,
-    // it doesn't do so until it's finished compiling, and even then only if there were
-    // no compiler warnings. So instead of waiting for that, consider it ready as soon
-    // as it starts listening for requests.
-    StdOut
-      .WaitForMatch(
-        new Regex(
-          !string.IsNullOrWhiteSpace(regex) ? regex : DEFAULT_REGEX,
-          RegexOptions.None,
-          REGEX_MATCH_TIMEOUT
-        )
+    // Wait for the dev-server startup message with an overall deadline.
+    // REGEX_EVAL_TIMEOUT limits per-line regex evaluation (guards against catastrophic backtracking).
+    // REGEX_MATCH_TIMEOUT is the overall startup deadline; if the server never prints the expected
+    // string within that window the actor transitions to the Error state and may retry.
+    Task<Match> matchTask = StdOut.WaitForMatch(
+      new Regex(
+        !string.IsNullOrWhiteSpace(regex) ? regex : DEFAULT_REGEX,
+        RegexOptions.None,
+        REGEX_EVAL_TIMEOUT
       )
+    );
+
+    Task<Match> timeoutTask = Task.Delay(REGEX_MATCH_TIMEOUT)
+      .ContinueWith<Match>(
+        _ => throw new TimeoutException(
+          $"Dev-server '{spaSettings?.SpaRootPath ?? "?"}' did not output the expected startup string within {REGEX_MATCH_TIMEOUT.TotalMinutes} minutes."
+        ),
+        TaskScheduler.Default
+      );
+
+    Task.WhenAny(matchTask, timeoutTask)
+      .Unwrap()
       .PipeTo(
         Self,
         Self,

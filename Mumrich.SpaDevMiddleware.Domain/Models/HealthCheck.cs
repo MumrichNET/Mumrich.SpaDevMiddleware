@@ -5,17 +5,17 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
   /// </summary>
   public class ActiveHealthCheck
   {
-    public string Enabled { get; set; }
+    public string? Enabled { get; set; }
 
-    public string Interval { get; set; }
+    public string? Interval { get; set; }
 
-    public string Timeout { get; set; }
+    public string? Timeout { get; set; }
 
-    public string Policy { get; set; }
+    public string? Policy { get; set; }
 
-    public string Path { get; set; }
+    public string? Path { get; set; }
 
-    public string Query { get; set; }
+    public string? Query { get; set; }
   }
 
   /// <summary>
@@ -23,6 +23,6 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
   /// </summary>
   public class HealthCheck
   {
-    public ActiveHealthCheck Active { get; set; }
+    public ActiveHealthCheck? Active { get; set; }
   }
 }

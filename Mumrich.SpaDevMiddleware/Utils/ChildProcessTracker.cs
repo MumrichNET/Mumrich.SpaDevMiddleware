@@ -121,6 +121,12 @@ public static class ChildProcessTracker
       if (!created)
       {
         int error = Marshal.GetLastWin32Error();
+        CloseHandle(stdinRead);
+        CloseHandle(stdinWrite);
+        CloseHandle(stdoutRead);
+        CloseHandle(stdoutWrite);
+        CloseHandle(stderrRead);
+        CloseHandle(stderrWrite);
         throw new Win32Exception(error, $"Failed to create process: {commandLine}");
       }
 
@@ -236,7 +242,11 @@ public static class ChildProcessTracker
       4096
     );
 
-    // Use reflection to set the internal fields
+    // Use reflection to set the internal fields.
+    // The .NET Process class provides no public API to attach pre-created stream handles after
+    // a process has been started with CreateProcess/CREATE_SUSPENDED. These private field names
+    // (_standardInput, _standardOutput, _standardError) have been stable since .NET Core 1.0;
+    // verify them against the .NET runtime source if upgrading the target framework.
     FieldInfo? standardInputField = typeof(Process).GetField(
       "_standardInput",
       BindingFlags.NonPublic | BindingFlags.Instance

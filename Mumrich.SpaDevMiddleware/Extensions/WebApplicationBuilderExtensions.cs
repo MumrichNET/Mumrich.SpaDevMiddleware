@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Dynamic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
@@ -14,8 +16,6 @@ using Mumrich.SpaDevMiddleware.Domain.Models;
 using Mumrich.SpaDevMiddleware.Domain.Types;
 using Mumrich.SpaDevMiddleware.Helpers;
 
-using Newtonsoft.Json.Linq;
-
 namespace Mumrich.SpaDevMiddleware.Extensions;
 
 /// <summary>
@@ -23,6 +23,8 @@ namespace Mumrich.SpaDevMiddleware.Extensions;
 /// </summary>
 public static class WebApplicationBuilderExtensions
 {
+  private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+
   public static void SetupSpaMiddleware(
     this WebApplicationBuilder aBuilder,
     ISpaMiddlewareSettings aSpaMiddlewareSettings
@@ -33,25 +35,27 @@ public static class WebApplicationBuilderExtensions
       return;
     }
 
-    JObject origin = [];
+    JsonObject origin = new();
 
     foreach ((string appPath, SpaSettings spaSettings) in aSpaMiddlewareSettings.SinglePageApps)
     {
+      spaSettings.Validate();
+
       Guid guid = Guid.NewGuid();
-      JObject current = spaSettings.Bundler switch
+      JsonObject current = spaSettings.Bundler switch
       {
         BundlerType.ViteJs => GetViteJsYarpConfig(appPath, guid, spaSettings),
         BundlerType.QuasarCli => GetQuasarYarpConfig(appPath, guid, spaSettings),
-        BundlerType.Custom => JObject.FromObject(new { ReverseProxy = spaSettings.CustomYarpConfiguration }),
+        BundlerType.Custom => SerializeToJsonObject(new { ReverseProxy = spaSettings.CustomYarpConfiguration }),
         _ => throw new NotImplementedException(),
       };
 
-      origin.Merge(current);
+      MergeJsonObjects(origin, current);
     }
 
-    string newConfig = origin.ToString();
+    string newConfig = origin.ToJsonString(_jsonOptions);
 
-    Console.WriteLine(newConfig);
+    Debug.WriteLine(newConfig);
 
     aBuilder.Configuration.AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(newConfig)));
 
@@ -66,7 +70,28 @@ public static class WebApplicationBuilderExtensions
     );
   }
 
-  private static JObject GetQuasarYarpConfig(string aAppPath, Guid aAppId, SpaSettings aSpaSettings)
+  /// <summary>Recursively merges <paramref name="source"/> into <paramref name="target"/>, overwriting scalar values.</summary>
+  private static void MergeJsonObjects(JsonObject target, JsonObject source)
+  {
+    foreach ((string key, JsonNode? value) in source)
+    {
+      if (target[key] is JsonObject targetChild && value is JsonObject sourceChild)
+      {
+        MergeJsonObjects(targetChild, sourceChild);
+      }
+      else
+      {
+        target[key] = value?.DeepClone();
+      }
+    }
+  }
+
+  private static JsonObject SerializeToJsonObject(object value)
+  {
+    return JsonSerializer.SerializeToNode(value, _jsonOptions)!.AsObject();
+  }
+
+  private static JsonObject GetQuasarYarpConfig(string aAppPath, Guid aAppId, SpaSettings aSpaSettings)
   {
     return GetYarpConfig(
       aAppPath,
@@ -76,7 +101,7 @@ public static class WebApplicationBuilderExtensions
     );
   }
 
-  private static JObject GetViteJsYarpConfig(string aAppPath, Guid aAppId, SpaSettings aSpaSettings)
+  private static JsonObject GetViteJsYarpConfig(string aAppPath, Guid aAppId, SpaSettings aSpaSettings)
   {
     return GetYarpConfig(
       aAppPath,
@@ -90,7 +115,7 @@ public static class WebApplicationBuilderExtensions
     );
   }
 
-  private static JObject GetYarpConfig(
+  private static JsonObject GetYarpConfig(
     string aAppBasePath,
     SpaSettings aSpaSettings,
     Dictionary<string, string> aRouteMatches,
@@ -101,7 +126,7 @@ public static class WebApplicationBuilderExtensions
 
     string clusterId = $"spa-cluster-{aAppId}";
 
-    JObject rootConfig = JObject.FromObject(
+    JsonObject rootConfig = SerializeToJsonObject(
       new
       {
         ReverseProxy = new
@@ -126,53 +151,51 @@ public static class WebApplicationBuilderExtensions
     foreach ((string route, string path) in aRouteMatches)
     {
       string fullAppPath = $"{aAppBasePath}/{path}".Replace("//", "/");
-      JObject yarpRouteConfig = GetYarpRoute(route, clusterId, fullAppPath, aSpaSettings);
+      JsonObject yarpRouteConfig = GetYarpRoute(route, clusterId, fullAppPath, aSpaSettings);
 
-      rootConfig.Merge(yarpRouteConfig);
+      MergeJsonObjects(rootConfig, yarpRouteConfig);
     }
 
     return rootConfig;
   }
 
-  private static JObject GetYarpRoute(string aRoute, string aClusterId, string aPath, SpaSettings aSpaSettings)
+  private static JsonObject GetYarpRoute(string aRoute, string aClusterId, string aPath, SpaSettings aSpaSettings)
   {
-    ExpandoObject proxyRouteConfig = new();
-
-    proxyRouteConfig.TryAdd("ClusterId", aClusterId);
-    proxyRouteConfig.TryAdd("Match", new { Path = aPath });
+    var proxyRouteConfig = new Dictionary<string, object>
+    {
+      { "ClusterId", aClusterId },
+      { "Match", new { Path = aPath } },
+    };
 
     if (aSpaSettings.AuthorizationPolicy != null)
     {
-      proxyRouteConfig.TryAdd("AuthorizationPolicy", aSpaSettings.AuthorizationPolicy);
+      proxyRouteConfig["AuthorizationPolicy"] = aSpaSettings.AuthorizationPolicy;
     }
 
     if (aSpaSettings.CorsPolicy != null)
     {
-      proxyRouteConfig.TryAdd("CorsPolicy", aSpaSettings.CorsPolicy);
+      proxyRouteConfig["CorsPolicy"] = aSpaSettings.CorsPolicy;
     }
 
-    proxyRouteConfig.TryAdd(
-      "HealthCheck",
-      new HealthCheck
+    proxyRouteConfig["HealthCheck"] = new HealthCheck
+    {
+      Active = new ActiveHealthCheck
       {
-        Active = new ActiveHealthCheck
-        {
-          Enabled = aSpaSettings.HealthCheckEnabled.ToString().ToLowerInvariant(),
-          Interval = "00:00:10",
-          Timeout = "00:00:15",
-          Policy = "ConsecutiveFailures",
-          Path = aPath,
-        },
-      }
-    );
+        Enabled = aSpaSettings.HealthCheckEnabled.ToString().ToLowerInvariant(),
+        Interval = "00:00:10",
+        Timeout = "00:00:15",
+        Policy = "ConsecutiveFailures",
+        Path = aPath,
+      },
+    };
 
-    proxyRouteConfig.TryAdd(
-      "Metadata",
-      new Dictionary<string, string> { { "ConsecutiveFailuresHealthPolicy.Threshold", "3" } }
-    );
+    proxyRouteConfig["Metadata"] = new Dictionary<string, string>
+    {
+      { "ConsecutiveFailuresHealthPolicy.Threshold", "3" },
+    };
 
-    return JObject.FromObject(
-      new { ReverseProxy = new { Routes = new Dictionary<string, ExpandoObject> { { aRoute, proxyRouteConfig } } } }
+    return SerializeToJsonObject(
+      new { ReverseProxy = new { Routes = new Dictionary<string, object> { { aRoute, proxyRouteConfig } } } }
     );
   }
 }

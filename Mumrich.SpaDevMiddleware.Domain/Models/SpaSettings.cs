@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 using Mumrich.SpaDevMiddleware.Domain.Types;
 
@@ -18,7 +20,7 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// <summary>
     /// Name of the policy or "Default", "Anonymous"
     /// </summary>
-    public string AuthorizationPolicy { get; set; }
+    public string? AuthorizationPolicy { get; set; }
 
     /// <summary>
     /// The Bundler used by the SPA.
@@ -29,19 +31,19 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// <summary>
     /// Name of the CorsPolicy to apply to this route or "Default", "Disable"
     /// </summary>
-    public string CorsPolicy { get; set; }
+    public string? CorsPolicy { get; set; }
 
     /// <summary>
     /// Optional custom YARP (Yet Another Reverse Proxy) configuration for this SPA.
     /// When set, this configuration is used instead of the default generated proxy settings.
     /// </summary>
-    public SpaProxyConfig CustomYarpConfiguration { get; set; }
+    public SpaProxyConfig? CustomYarpConfiguration { get; set; }
 
     /// <summary>
     /// The full Url to the dev-server.
     /// E. g.: "http://localhost:8080/" or "https://app:3000/"
     /// </summary>
-    public string DevServerAddress { get; set; }
+    public string? DevServerAddress { get; set; }
 
     /// <summary>
     /// The env-vars to pass to the dev-server-process.
@@ -87,7 +89,7 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// <summary>
     /// A regular-expression that matches when the dev-server has successfully started.
     /// </summary>
-    public string Regex { get; set; }
+    public string? Regex { get; set; }
 
     /// <summary>
     /// The RegExp for detecting SPA-Assets requests.
@@ -106,6 +108,59 @@ namespace Mumrich.SpaDevMiddleware.Domain.Models
     /// The path to the app root-dir, relative to the current directory.
     /// E. g.: "client-app" assuming the SPA resides in "%ProjectDir%/client-app"
     /// </summary>
-    public string SpaRootPath { get; set; }
+    public string? SpaRootPath { get; set; }
+
+    /// <summary>
+    /// Maximum number of seconds to wait for the dev-server to become reachable. Default: 300.
+    /// </summary>
+    public int DevServerStartupTimeoutSeconds { get; set; } = 300;
+
+    /// <summary>
+    /// Interval in seconds between dev-server reachability probes. Default: 2.
+    /// </summary>
+    public int DevServerStartupRetryIntervalSeconds { get; set; } = 2;
+
+    /// <summary>
+    /// Validates that required settings are present and well-formed.
+    /// Throws <see cref="InvalidOperationException"/> with a descriptive message on failure.
+    /// </summary>
+    public void Validate()
+    {
+      if (!Uri.TryCreate(DevServerAddress, UriKind.Absolute, out _))
+      {
+        throw new InvalidOperationException(
+          $"{nameof(DevServerAddress)} '{DevServerAddress}' is not a valid absolute URI."
+        );
+      }
+
+      if (string.IsNullOrWhiteSpace(SpaRootPath))
+      {
+        throw new InvalidOperationException($"{nameof(SpaRootPath)} must not be null or empty.");
+      }
+
+      try
+      {
+        _ = new Regex(SpaRootExpression);
+      }
+      catch (ArgumentException ex)
+      {
+        throw new InvalidOperationException(
+          $"{nameof(SpaRootExpression)} '{SpaRootExpression}' is not a valid regular expression.",
+          ex
+        );
+      }
+
+      try
+      {
+        _ = new Regex(SpaAssetsExpression);
+      }
+      catch (ArgumentException ex)
+      {
+        throw new InvalidOperationException(
+          $"{nameof(SpaAssetsExpression)} '{SpaAssetsExpression}' is not a valid regular expression.",
+          ex
+        );
+      }
+    }
   }
 }
