@@ -1,8 +1,7 @@
-import { fileURLToPath, URL } from "node:url";
-
-import { defineConfig } from "vite-plus";
 import vue from "@vitejs/plugin-vue";
 import vueDevTools from "vite-plugin-vue-devtools";
+import { defineConfig } from "vite-plus";
+import { fileURLToPath, URL } from "node:url";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -32,6 +31,6 @@ export default defineConfig({
   server: {
     port: 3000,
     strictPort: true,
-    host: true,
+    host: "0.0.0.0",
   },
 });
