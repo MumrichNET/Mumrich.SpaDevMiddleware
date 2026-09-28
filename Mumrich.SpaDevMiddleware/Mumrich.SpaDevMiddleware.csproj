@@ -14,8 +14,8 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Akka.Hosting" Version="1.5.62" />
-    <PackageReference Include="GitVersion.MsBuild" Version="6.6.0">
+    <PackageReference Include="Akka.Hosting" Version="1.5.71" />
+    <PackageReference Include="GitVersion.MsBuild" Version="6.8.2">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
