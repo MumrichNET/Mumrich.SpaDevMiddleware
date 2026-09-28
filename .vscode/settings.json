@@ -1,3 +1,33 @@
 {
-  "i18n-ally.localesPaths": ["WebSpaVue/ClientApp/admin-app/src/i18n"]
+  "i18n-ally.localesPaths": ["WebSpaVue/ClientApp/admin-app/src/i18n"],
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#6c9c81",
+    "activityBar.activeBorder": "#15202b",
+    "activityBar.background": "#6c9c81",
+    "activityBar.foreground": "#15202b",
+    "activityBar.inactiveForeground": "#15202b99",
+    "activityBarBadge.background": "#ded9e5",
+    "activityBarBadge.foreground": "#15202b",
+    "activityBarTop.activeBackground": "#6c9c81",
+    "activityBarTop.activeBorder": "#15202b",
+    "activityBarTop.background": "#6c9c81",
+    "activityBarTop.foreground": "#15202b",
+    "activityBarTop.inactiveForeground": "#15202b99",
+    "commandCenter.border": "#e7e7e799",
+    "commandCenter.foreground": "#e7e7e7",
+    "sash.hoverBorder": "#6c9c81",
+    "statusBar.background": "#567f68",
+    "statusBar.debuggingBackground": "#567f68",
+    "statusBar.debuggingForeground": "#e7e7e7",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBar.inactiveBackground": "#567f68",
+    "statusBarItem.hoverBackground": "#6c9c81",
+    "statusBarItem.remoteBackground": "#4e405f",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "titleBar.activeBackground": "#567f68",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#567f6899",
+    "titleBar.inactiveForeground": "#e7e7e799"
+  },
+  "peacock.color": "#567f68"
 }
