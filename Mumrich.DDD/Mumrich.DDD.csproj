@@ -7,5 +7,6 @@
   <ItemGroup>
     <PackageReference Include="Akka.DependencyInjection" Version="1.5.71" />
     <PackageReference Include="Akka.Persistence" Version="1.5.71" />
+    <PackageReference Include="OpenTelemetry.Api" Version="1.19.1" />
   </ItemGroup>
 </Project>
